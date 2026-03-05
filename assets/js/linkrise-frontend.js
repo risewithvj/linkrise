@@ -281,8 +281,8 @@
               var csv='Short URL,Original URL\n'+state.results.results.map(function(r){return '"'+r.short+'","'+r.orig+'"';}).join('\n');
               var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='linkrise-bulk.csv';
               document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            }}, '⬇ CSV'),
-            h('button', { class:'lr-btn-outline', onclick:function() { render({ results:null, err:'', loading:false }); } }, '+ More'),
+            }}, 'Download CSV'),
+            h('button', { class:'lr-btn-outline', onclick:function() { render({ results:null, err:'', loading:false }); } }, 'Create More'),
           ]),
           h('div', { class:'lr-tbl-wrap', html:'<table class="lr-tbl"><thead><tr><th>Short URL</th><th>Original</th></tr></thead><tbody>'+rows+'</tbody></table>' }),
         ]));
@@ -372,7 +372,7 @@
       if (phase === 'countdown') {
         var pct = Math.round((timer / (cfg.countdown || 1)) * 100);
         root.appendChild(h('div', { class:'lr-landing-card' }, [
-          h('div', { class:'lr-landing-ico' }, ' '),
+          h('div', { class:'lr-landing-ico', html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3"></path><path d="M12 18v3"></path><path d="M4.9 4.9l2.1 2.1"></path><path d="M17 17l2.1 2.1"></path><path d="M3 12h3"></path><path d="M18 12h3"></path><path d="M4.9 19.1 7 17"></path><path d="M17 7l2.1-2.1"></path></svg>' }),
           h('h2', { class:'lr-landing-h2' }, 'Redirecting…'),
           h('p',  { class:'lr-landing-sub' }, 'You will be redirected in'),
           h('div', { id:'lr-cd-num', class:'lr-cd-num' }, String(timer)),
@@ -408,7 +408,7 @@
         pwInp.addEventListener('keydown', function(e) { if (e.key==='Enter') unlockBtn.click(); });
 
         root.appendChild(h('div', { class:'lr-landing-card' }, [
-          h('div', { class:'lr-landing-ico' }, 'Lock'),
+          h('div', { class:'lr-landing-ico', html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 1 1 8 0v3"></path><circle cx="12" cy="16" r="1"></circle></svg>' }),
           h('h2', { class:'lr-landing-h2' }, 'Password Protected'),
           h('p',  { class:'lr-landing-sub' }, 'Enter the password to access this link.'),
           state.err ? h('div', { class:'lr-error-box' }, state.err) : null,

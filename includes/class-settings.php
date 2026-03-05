@@ -35,7 +35,7 @@ class LinkRise_Settings {
 		// Integer fields
 		foreach ( array( 'linkrise_rate_limit', 'linkrise_bulk_max', 'linkrise_countdown' ) as $k ) {
 			if ( isset( $_POST[ $k ] ) ) {
-				update_option( $k, absint( $_POST[ $k ] ) );
+				update_option( $k, absint( wp_unslash( $_POST[ $k ] ) ) );
 			}
 		}
 

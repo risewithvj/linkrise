@@ -105,6 +105,14 @@ class LinkRise_Frontend {
 	public static function seo_head() {
 		if ( get_query_var( 'lr_code' ) || isset( $_GET['lrsc'] ) ) {
 			echo '<meta name="robots" content="noindex,nofollow,noarchive">' . "\n";
+			echo '<meta name="referrer" content="no-referrer-when-downgrade">' . "\n";
+			$schema = array(
+				'@context' => 'https://schema.org',
+				'@type'    => 'WebPage',
+				'name'     => 'Link Redirect',
+				'description' => 'Secure redirection page with verification and countdown.',
+			);
+			echo '<script type="application/ld+json">' . wp_json_encode( $schema ) . '</script>' . "\n";
 		}
 	}
 
@@ -168,14 +176,11 @@ class LinkRise_Frontend {
 			wp_redirect( $dest, 302 ); exit;
 		}
 
-		// Password-protected → send to landing page
+		$landing = self::landing_url();
+
+		// Password-protected and public links both resolve via the landing screen
+		// so countdown/timer settings are always respected.
 		if ( ! empty( $link->password_hash ) ) {
-			$landing = (string) get_option( 'linkrise_landing_url', '' );
-			if ( empty( $landing ) ) {
-				// Auto-detect page containing [linkrise_landing] shortcode
-				$pid = $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_status='publish' AND post_type='page' AND post_content LIKE '%[linkrise_landing]%' LIMIT 1" ); // phpcs:ignore
-				$landing = $pid ? (string) get_permalink( (int) $pid ) : home_url( '/' );
-			}
 			wp_redirect( esc_url_raw( add_query_arg( 'lrsc', rawurlencode( $code ), $landing ) ), 302 );
 			exit;
 		}
@@ -205,8 +210,8 @@ class LinkRise_Frontend {
 		$snap_get    = $_GET;
 		$snap_ip     = LinkRise_Security::get_ip();
 
-		// Fire redirect immediately — browser gets the response
-		wp_redirect( esc_url_raw( $destination ), 302 );
+		// Send users to the landing page so the configurable countdown always runs.
+		wp_redirect( esc_url_raw( add_query_arg( 'lrsc', rawurlencode( $code ), $landing ) ), 302 );
 
 		// Log click async (after browser receives headers)
 		add_action( 'shutdown', function() use ( $snap_link, $snap_server, $snap_get, $snap_ip, $ckey ) {
@@ -217,6 +222,16 @@ class LinkRise_Frontend {
 		} );
 
 		exit;
+	}
+
+	private static function landing_url() {
+		global $wpdb;
+		$landing = (string) get_option( 'linkrise_landing_url', '' );
+		if ( empty( $landing ) ) {
+			$pid = $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_status='publish' AND post_type='page' AND post_content LIKE '%[linkrise_landing]%' LIMIT 1" ); // phpcs:ignore
+			$landing = $pid ? (string) get_permalink( (int) $pid ) : home_url( '/' );
+		}
+		return $landing;
 	}
 
 	// ── CLICK LOGGING ───────────────────────────────────────────────────────
