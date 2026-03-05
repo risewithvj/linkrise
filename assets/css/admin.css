@@ -1,0 +1,9 @@
+/*
+ * Developer: Vijaya Kumar L
+ * GitHub: https://github.com/risewithvj
+ * LinkedIn: https://in.linkedin.com/in/vijayakumarl
+ * Report Issues: https://github.com/risewithvj/linkrise/issues
+ */
+:root{--lr-primary:#0363fc;--lr-border:#e5e7eb;--lr-bg:#f9fafb;--lr-radius:8px}
+.lr-admin{background:var(--lr-bg)}
+.lr-admin .card{border:1px solid var(--lr-border);border-radius:var(--lr-radius)}
