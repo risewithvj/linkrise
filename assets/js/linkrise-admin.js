@@ -45,7 +45,6 @@
       var d = res.data;
 
       $('#st-total').text( numFmt(d.total_clicks) );
-      $('#st-unique').text( numFmt(d.unique_clicks) );
       $('#st-today').text( numFmt(d.today) );
       $('#st-week').text(  numFmt(d.week) );
       $('#st-links').text( numFmt(d.total_links) );
@@ -105,8 +104,8 @@
           datasets: [{
             label: 'Clicks',
             data: daily.map(function(r){ return +r.c; }),
-            borderColor: '#0363fc', backgroundColor: 'rgba(3,99,252,0.08)',
-            borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#0363fc'
+            borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.08)',
+            borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#6366f1'
           }]
         },
         options: { responsive:true, plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, ticks:{precision:0} } } }
@@ -137,7 +136,7 @@
   $(document).on('click', '#btn-flush', function() {
     var $b = $(this).prop('disabled', true).text('Flushing…');
     post('lr_flush_rules', {}, function(res) {
-      $b.prop('disabled', false).text('Flush Rewrite Rules');
+      $b.prop('disabled', false).text('🔄 Flush Rewrite Rules');
       if (res && res.success) { toast(res.data.msg, 'success'); }
       else { toast('Flush failed. Try deactivating and reactivating the plugin.', 'error'); }
     });
@@ -243,7 +242,7 @@
     var url = $(this).data('url'), $b = $(this), orig = $b.text();
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(function(){
-        $b.text('Done').addClass('lr-copied');
+        $b.text('✅').addClass('lr-copied');
         setTimeout(function(){ $b.text(orig).removeClass('lr-copied'); }, 2200);
       });
     }
@@ -308,14 +307,6 @@
     });
   });
 
-  $(document).on('click', '#btn-bulk-pause, #btn-bulk-activate', function() {
-    var ids = getSelected(); if (!ids.length) return;
-    var status = this.id === 'btn-bulk-activate' ? 'active' : 'paused';
-    post('lr_bulk_status', { ids: ids, status: status }, function(res) {
-      if (res && res.success) { toast(ids.length+' links updated.', 'success'); setTimeout(function(){ location.reload(); }, 700); }
-    });
-  });
-
   /* ── EXPORT / BACKUP ──────────────────────────────────────────────────── */
   $(document).on('click', '#btn-csv', function(e) {
     e.preventDefault();
@@ -369,29 +360,6 @@
     var id = $(this).data('id'), sc = $(this).data('sc');
     post('lr_delete_report_link', { id:id, sc:sc }, function(res) {
       if (res && res.success) { $('#rpt-'+id).fadeOut(200, function(){ $(this).remove(); }); toast('Link and report deleted.', 'success'); }
-    });
-  });
-
-  $(document).on('change', '#lr-rpt-chk-all', function() {
-    $('.lr-rpt-row-chk').prop('checked', $(this).is(':checked'));
-    updateReportBulkBar();
-  });
-  $(document).on('change', '.lr-rpt-row-chk', updateReportBulkBar);
-
-  function updateReportBulkBar() {
-    var n = $('.lr-rpt-row-chk:checked').length;
-    n > 0 ? $('#lr-rpt-bulk-bar').show().find('#lr-rpt-bulk-cnt').text(n+' selected') : $('#lr-rpt-bulk-bar').hide();
-  }
-
-  $(document).on('click', '#btn-rpt-bulk-del', function() {
-    var ids = $('.lr-rpt-row-chk:checked').map(function(){ return $(this).val(); }).get();
-    if (!ids.length || !confirm(C.bulkReportsDel)) return;
-    post('lr_bulk_delete_reports', { ids: ids }, function(res) {
-      if (res && res.success) {
-        ids.forEach(function(id){ $('#rpt-'+id).fadeOut(200, function(){ $(this).remove(); }); });
-        updateReportBulkBar();
-        toast(ids.length+' reports deleted.', 'success');
-      }
     });
   });
 

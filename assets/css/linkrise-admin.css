@@ -1,16 +1,16 @@
 /* LinkRise Admin v3.1.0 */
-:root{--p:#0363fc;--pd:#0354d4;--g:#22c55e;--r:#ef4444;--o:#f59e0b;--bg:#f9fafb;--card:#fff;--brd:#e5e7eb;--txt:#1f2937;--mut:#6b7280;--rad:8px;--sh:none}
+:root{--p:#6366f1;--pd:#4f46e5;--g:#22c55e;--r:#ef4444;--o:#f59e0b;--bg:#f1f5f9;--card:#fff;--brd:#e2e8f0;--txt:#1e293b;--mut:#64748b;--rad:12px;--sh:0 2px 12px rgba(99,102,241,.07)}
 
 .lr-admin *{box-sizing:border-box}
 .lr-admin{max-width:1320px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--txt)}
 
 /* Header */
-.lr-hdr{display:flex;align-items:center;justify-content:space-between;background:var(--card);color:var(--txt);border:1px solid var(--brd);border-radius:var(--rad);padding:22px 28px;margin-bottom:18px}
-.lr-hdr h1{margin:0;font-size:1.5rem;font-weight:800;color:var(--txt)}
-.lr-ver{background:var(--bg);border-radius:6px;padding:2px 8px;font-size:.68rem;font-weight:700;vertical-align:middle;margin-left:8px}
-.lr-hdr-sub{margin:3px 0 0;color:var(--mut);font-size:.84rem}
-.lr-hdr-status{display:flex;align-items:center;gap:7px;font-size:.83rem;font-weight:600;color:var(--mut)}
-.lr-dot{width:8px;height:8px;background:#4ade80;border-radius:50%;animation:lr-pulse 2s infinite}
+.lr-hdr{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--p),#818cf8);color:#fff;border-radius:var(--rad);padding:22px 28px;margin-bottom:18px}
+.lr-hdr h1{margin:0;font-size:1.5rem;font-weight:800;color:#fff}
+.lr-ver{background:rgba(255,255,255,.2);border-radius:6px;padding:2px 8px;font-size:.68rem;font-weight:700;vertical-align:middle;margin-left:8px}
+.lr-hdr-sub{margin:3px 0 0;opacity:.85;font-size:.84rem}
+.lr-hdr-status{display:flex;align-items:center;gap:7px;font-size:.83rem;font-weight:600;opacity:.9}
+.lr-dot{width:8px;height:8px;background:#4ade80;border-radius:50%;box-shadow:0 0 6px #4ade80;animation:lr-pulse 2s infinite}
 @keyframes lr-pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
 /* Notice */
@@ -108,7 +108,6 @@
 
 /* Export row */
 .lr-export-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
-.lr-tools-label{font-size:.8rem;font-weight:700;color:var(--mut);margin-right:2px}
 
 /* Empty state */
 .lr-empty-state{text-align:center;padding:56px 20px;color:var(--mut);background:var(--card);border-radius:var(--rad);border:1px solid var(--brd);font-size:.95rem}
