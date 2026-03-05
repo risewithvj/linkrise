@@ -341,7 +341,7 @@ LR_Bulk(el,cfg);
 		$id   = 'lrl-' . wp_rand( 1000, 9999 );
 
 		if ( empty( $sc ) ) {
-			return '<div class="lr-wrap"><div class="lr-card"><p class="lr-error">⚠ No link specified.</p></div></div>';
+			return '<div class="lr-wrap"><div class="lr-card"><p class="lr-error">No link specified.</p></div></div>';
 		}
 
 		global $wpdb;
@@ -351,10 +351,10 @@ LR_Bulk(el,cfg);
 		) );
 
 		if ( ! $link ) {
-			return '<div class="lr-wrap"><div class="lr-card"><p class="lr-error">⚠ Link not found or inactive.</p></div></div>';
+			return '<div class="lr-wrap"><div class="lr-card"><p class="lr-error">Link not found or inactive.</p></div></div>';
 		}
 		if ( $link->expiry_date && strtotime( $link->expiry_date ) < time() ) {
-			return '<div class="lr-wrap"><div class="lr-card"><p class="lr-error">⚠ This link has expired.</p></div></div>';
+			return '<div class="lr-wrap"><div class="lr-card"><p class="lr-error">This link has expired.</p></div></div>';
 		}
 
 		$cfg = array(

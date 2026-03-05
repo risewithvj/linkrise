@@ -1,5 +1,5 @@
 /* LinkRise Frontend v3.1.0 — Pure CSS, no dependencies */
-:root{--lr-p:#6366f1;--lr-pd:#4f46e5;--lr-g:#22c55e;--lr-r:#ef4444;--lr-bg:#fff;--lr-surf:#f8faff;--lr-brd:#e2e8f0;--lr-txt:#1e293b;--lr-mut:#64748b;--lr-rad:14px;--lr-sh:0 8px 32px rgba(99,102,241,.11)}
+:root{--lr-p:#0363fc;--lr-pd:#0354d4;--lr-g:#22c55e;--lr-r:#ef4444;--lr-bg:#fff;--lr-surf:#f9fafb;--lr-brd:#e5e7eb;--lr-txt:#1f2937;--lr-mut:#6b7280;--lr-rad:8px;--lr-sh:none}
 
 /* Wrapper */
 .lr-wrap{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--lr-txt);box-sizing:border-box}
@@ -50,13 +50,6 @@
 .lr-qr-wrap{margin:0 auto 14px}
 .lr-qr-img{width:175px;height:175px;border-radius:10px;border:1px solid var(--lr-brd);display:block;margin:0 auto}
 .lr-result-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
-.lr-share-row{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--lr-brd)}
-.lr-share-lbl{font-size:.8rem;color:var(--lr-mut);font-weight:700}
-.lr-share-x,.lr-share-wa,.lr-share-li{text-decoration:none;border-radius:7px;padding:5px 13px;font-size:.82rem;font-weight:700;color:#fff;transition:opacity .18s}
-.lr-share-x{background:#000}
-.lr-share-wa{background:#25d366}
-.lr-share-li{background:#0077b5}
-.lr-share-x:hover,.lr-share-wa:hover,.lr-share-li:hover{opacity:.82;color:#fff}
 
 /* Bulk table */
 .lr-tbl-wrap{overflow-x:auto;margin-top:14px}
@@ -76,6 +69,8 @@
 .lr-report-link{background:none;border:none;color:var(--lr-mut);font-size:.76rem;cursor:pointer;margin-top:16px;text-decoration:underline;display:block;font-family:inherit}
 .lr-report-link:hover{color:var(--lr-r)}
 .lr-report-form{text-align:left;margin-top:10px}
+.lr-landing-card .lr-btn-primary.lr-btn-full{margin-top:14px}
+.lr-landing-card .lr-report-link{text-align:center}
 .lr-report-form .lr-input{margin-bottom:8px}
 .lr-success-notice{background:#dcfce7;color:#166534;border-radius:8px;padding:9px 13px;margin-top:10px;font-size:.86rem}
 
