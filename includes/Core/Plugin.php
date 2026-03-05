@@ -7,6 +7,13 @@ use LinkRiseEnterprise\Database\Migrator;
 use LinkRiseEnterprise\API\PublicController;
 use LinkRiseEnterprise\API\LinksController;
 use LinkRiseEnterprise\API\AnalyticsController;
+use LinkRiseEnterprise\API\CampaignsController;
+use LinkRiseEnterprise\API\PixelsController;
+use LinkRiseEnterprise\API\TeamsController;
+use LinkRiseEnterprise\API\ReportsController;
+use LinkRiseEnterprise\API\SettingsController;
+use LinkRiseEnterprise\API\ExportController;
+use LinkRiseEnterprise\API\WebhooksController;
 use LinkRiseEnterprise\Frontend\Shortcodes;
 use LinkRiseEnterprise\Frontend\RedirectEngine;
 
@@ -25,6 +32,13 @@ class Plugin {
 		( new PublicController() )->register();
 		( new LinksController() )->register();
 		( new AnalyticsController() )->register();
+		( new CampaignsController() )->register();
+		( new PixelsController() )->register();
+		( new TeamsController() )->register();
+		( new ReportsController() )->register();
+		( new SettingsController() )->register();
+		( new ExportController() )->register();
+		( new WebhooksController() )->register();
 		( new Shortcodes() )->register();
 		( new RedirectEngine() )->register();
 	}

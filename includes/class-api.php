@@ -16,8 +16,16 @@ class Api {
 	public function register_routes() {
 		register_rest_route( 'linkrise/v1', '/health', array(
 			'methods' => 'GET',
-			'permission_callback' => '__return_true',
-			'callback' => function() { return array( 'ok' => true, 'version' => LINKRISE_VERSION ); },
+			'permission_callback' => array( $this, 'health_permission' ),
+			'callback' => array( $this, 'health' ),
 		) );
+	}
+
+	public function health_permission() {
+		return current_user_can( 'manage_options' );
+	}
+
+	public function health() {
+		return new \WP_REST_Response( array( 'ok' => true, 'version' => LINKRISE_VERSION ), 200 );
 	}
 }
