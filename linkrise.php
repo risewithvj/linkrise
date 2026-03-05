@@ -83,3 +83,12 @@ function lr_prefix() {
 	$pfx = preg_replace( '/[^a-z0-9\-]/', '', strtolower( trim( $raw ) ) );
 	return $pfx !== '' ? $pfx : LINKRISE_PFX;
 }
+
+// Enterprise v4 bootstrap (non-breaking additive boot)
+if ( file_exists( LINKRISE_DIR . 'includes/Core/Autoloader.php' ) ) {
+	require_once LINKRISE_DIR . 'includes/Core/Autoloader.php';
+	\LinkRiseEnterprise\Core\Autoloader::register();
+	add_action( 'plugins_loaded', function() {
+		\LinkRiseEnterprise\Core\Plugin::instance()->boot();
+	}, 6 );
+}
