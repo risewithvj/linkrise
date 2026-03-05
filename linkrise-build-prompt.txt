@@ -1,0 +1,795 @@
+================================================================================
+LINKRISE ENTERPRISE v4.0 — COMPLETE MASTER BUILD PROMPT
+WordPress SaaS URL Shortener Plugin (Admin + Public Frontend)
+================================================================================
+
+SECTION 0 — YOUR ROLE AND MISSION
+================================================================================
+
+You are a principal-level full-stack WordPress plugin engineer. Write
+production-grade, security-hardened, scalable code following WordPress VIP
+Coding Standards, PSR-4 autoloading, React 18 modern patterns, and OWASP
+security guidelines.
+
+Build LinkRise Enterprise v4.0 — a world-class URL intelligence platform as a
+WordPress plugin rivaling Bitly, Short.io, and Rebrandly at 10M+ clicks/month.
+
+TWO USER TYPES:
+
+TYPE A — ADMIN: Manages everything via React SPA inside /wp-admin.
+TYPE B — PUBLIC FRONTEND USERS (free/guest, no login required by default):
+  Use three shortcode-powered pages on the public website:
+    [linkrise_generator]       Single URL shortener
+    [linkrise_bulk_generator]  Bulk URL shortener (up to 50 URLs at once)
+    [linkrise_landing]         Redirect interstitial / password gate / expiry page
+
+Build EVERYTHING. No stubs. No placeholders. Production quality only.
+
+
+SECTION 1 — BRAND AND DESIGN SYSTEM
+================================================================================
+
+Primary:       #0363fc
+Primary Dark:  #0252d4
+Primary Light: #e8f0fe
+Success:       #10b981
+Danger:        #ef4444
+Warning:       #f59e0b
+Purple:        #8b5cf6
+Sidebar BG:    #0a0f1e
+Card BG:       #ffffff
+Page BG:       #f0f4ff
+Border:        #e2e8f0
+Text:          #0f172a
+Muted:         #64748b
+
+Font: Inter (400/500/600/700/800) via Google Fonts — load in admin AND frontend.
+Card radius: 16px | Button radius: 10px | Input radius: 10px | Modal radius: 20px
+Shadows: default 0 1px 8px rgba(3,99,252,0.06) | hover 0 4px 20px rgba(3,99,252,0.15)
+Motion: transition: all 0.15s ease on all interactive elements.
+
+
+SECTION 2 — FILE ARCHITECTURE
+================================================================================
+
+linkrise/
+├── linkrise.php
+├── uninstall.php
+├── package.json
+├── README.md
+├── includes/
+│   ├── Core/
+│   │   ├── Plugin.php
+│   │   ├── Loader.php
+│   │   ├── Autoloader.php
+│   │   └── ServiceProvider.php
+│   ├── Database/
+│   │   ├── Schema.php
+│   │   ├── Migrator.php
+│   │   └── Repository/
+│   │       ├── LinkRepository.php
+│   │       ├── ClickRepository.php
+│   │       ├── CampaignRepository.php
+│   │       ├── PixelRepository.php
+│   │       ├── TeamRepository.php
+│   │       └── ReportRepository.php
+│   ├── API/
+│   │   ├── RestController.php        (abstract base)
+│   │   ├── LinksController.php
+│   │   ├── AnalyticsController.php
+│   │   ├── CampaignsController.php
+│   │   ├── PixelsController.php
+│   │   ├── TeamsController.php
+│   │   ├── ReportsController.php
+│   │   ├── SettingsController.php
+│   │   ├── ExportController.php
+│   │   ├── WebhooksController.php
+│   │   └── PublicController.php      (no-auth endpoints)
+│   ├── Services/
+│   │   ├── LinkService.php
+│   │   ├── AnalyticsService.php
+│   │   ├── GeoService.php
+│   │   ├── SecurityService.php
+│   │   ├── CacheService.php
+│   │   ├── NotificationService.php
+│   │   ├── ExportService.php
+│   │   ├── ImportService.php
+│   │   ├── PixelService.php
+│   │   └── WebhookService.php
+│   ├── Frontend/
+│   │   ├── RedirectEngine.php
+│   │   ├── Shortcodes.php
+│   │   ├── LandingPage.php
+│   │   └── LinkInBio.php
+│   └── Admin/
+│       ├── AdminMenu.php
+│       └── AssetLoader.php
+├── src/
+│   ├── index.jsx
+│   ├── App.jsx
+│   ├── api/client.js
+│   ├── store/index.js
+│   ├── hooks/useLinks.js, useAnalytics.js, useDebounce.js, useToast.js
+│   ├── components/
+│   │   ├── layout/  Sidebar.jsx, TopBar.jsx, PageWrapper.jsx
+│   │   ├── ui/      Button, Input, Modal, Drawer, Toast, Badge, Tooltip,
+│   │   │            Toggle, Pagination, EmptyState, Spinner
+│   │   ├── charts/  BarChart, LineChart, DonutChart, Sparkline, Heatmap
+│   │   └── features/ LinkFormDrawer, ClickDrawer, QRModal, UTMBuilder, StatCard
+│   └── pages/
+│       Dashboard, Links, Analytics, Campaigns, QRStudio,
+│       Pixels, Teams, APIKeys, Reports, Settings
+└── assets/
+    js/linkrise-admin.js
+    css/linkrise-admin.css
+    js/linkrise-frontend.js
+    css/linkrise-frontend.css
+
+
+SECTION 3 — DATABASE SCHEMA (8 TABLES — use dbDelta, idempotent migrations)
+================================================================================
+
+TABLE: linkrise_links
+  id, shortcode (UNIQUE), long_url, title, fallback_url, expiry_date, start_date,
+  password_hash, created_at, updated_at, click_count, unique_clicks, click_limit,
+  click_goal, last_clicked, category, tags, notes, status (active/paused),
+  custom_prefix, rotation_urls (JSON), utm_params (JSON), webhook_url,
+  metadata (JSON), created_by, team_id, campaign_id, is_public
+  KEYS: status, created_by, campaign_id, team_id, created_at
+
+TABLE: linkrise_clicks
+  id, link_id, shortcode, clicked_at, ip_hash (MD5 only — NEVER raw IP),
+  country, country_code, city, region, device, browser, os,
+  referrer, referrer_domain, utm_source, utm_medium, utm_campaign,
+  utm_term, utm_content, language, session_id, is_unique, is_bot
+  KEYS: link_id, shortcode, clicked_at, country_code, is_bot
+
+TABLE: linkrise_campaigns
+  id, name, slug (UNIQUE), description, color, goal_clicks,
+  start_date, end_date, status, created_by, team_id, created_at
+
+TABLE: linkrise_teams
+  id, name, slug (UNIQUE), plan, owner_id, settings (JSON), created_at
+
+TABLE: linkrise_team_members
+  id, team_id, user_id, role (owner/admin/editor/viewer), invited_by, joined_at
+  UNIQUE KEY: team_id + user_id
+
+TABLE: linkrise_pixels
+  id, name, type (facebook/google/tiktok/linkedin/twitter/custom),
+  pixel_id, event_name, fire_on (all/specific), created_by, team_id, created_at
+
+TABLE: linkrise_api_keys
+  id, user_id, team_id, name, key_hash (SHA-256 only), key_prefix (8 chars),
+  scope (read/write/admin), last_used, expires_at, is_active, created_at
+  UNIQUE KEY: key_hash
+
+TABLE: linkrise_reports
+  id, shortcode, reported_url, reason, details, reporter_ip,
+  status (pending/dismissed/actioned), reviewed_by, reviewed_at, reported_at
+  KEYS: shortcode, status
+
+
+SECTION 4 — THREE PUBLIC SHORTCODES (FULL SPEC)
+================================================================================
+
+These are the core public SaaS product. Mobile-first. Pixel-perfect.
+Must feel like a standalone SaaS app, not a WordPress widget.
+All three share CSS design tokens prefixed --lr-*.
+
+CSS DESIGN TOKENS (shared by all 3 shortcodes):
+  --lr-primary: #0363fc
+  --lr-primary-dark: #0252d4
+  --lr-primary-light: #e8f0fe
+  --lr-success: #10b981
+  --lr-danger: #ef4444
+  --lr-card: #ffffff
+  --lr-border: #e2e8f0
+  --lr-text: #0f172a
+  --lr-muted: #64748b
+  --lr-radius: 14px
+  --lr-shadow: 0 4px 24px rgba(3,99,252,0.10)
+  font-family: Inter, -apple-system, sans-serif
+
+All shortcode wrappers: max-width 680px, centered, white card, shadow, 36px padding.
+Primary button hover: translateY(-1px) + box-shadow 0 4px 14px rgba(3,99,252,0.35)
+Input focus: border-color #0363fc + box-shadow 0 0 0 3px rgba(3,99,252,0.12)
+Result card: @keyframes lr-slide-in { from: opacity 0 translateY(10px); to: opacity 1 translateY(0) }
+
+================================================================================
+SHORTCODE 1: [linkrise_generator]
+================================================================================
+
+ATTRIBUTES:
+  show_history="true", require_login="false", max_per_hour="10",
+  show_qr="true", show_copy="true",
+  placeholder="Paste your long URL here...",
+  button_text="Shorten URL", title="Free URL Shortener",
+  subtitle="Shorten, brand and track your links instantly"
+
+UI:
+  Optional header: logo + Login + Sign Up buttons
+  H1 title + subtitle text
+  [Long URL input — full width]  [Shorten URL button — #0363fc]
+  [Advanced Options collapsible]: Custom Code, Category, Expiry, Password, Click Limit
+  [TOS checkbox — only if linkrise_tos_url is configured]
+  [CAPTCHA — only if enabled in Settings]
+  RESULT CARD (fade+slide animation):
+    Short URL + [Copy] [QR] [Stats] buttons
+    Destination URL shown below
+  RECENT LINKS: last 5 from localStorage shown below form
+
+BEHAVIOR:
+  1. Client-side URL validation before submit
+  2. POST /wp-json/linkrise/v1/public/shorten
+  3. Custom code taken: inline red error "That code is taken, try another"
+  4. Success: animate result card, auto-copy, toast "Copied!"
+  5. Rate limit: "You've created X links this hour. Wait Y minutes."
+  6. QR via api.qrserver.com with download button
+  7. Save to localStorage for recent links list
+
+================================================================================
+SHORTCODE 2: [linkrise_bulk_generator]
+================================================================================
+
+ATTRIBUTES:
+  max_urls="50", require_login="false", show_results_table="true",
+  allow_export="true", placeholder="Paste one URL per line...",
+  button_text="Shorten All", title="Bulk URL Shortener",
+  subtitle="Shorten up to 50 URLs at once — free, fast, no signup needed"
+
+UI:
+  Title + subtitle
+  Large multi-line textarea
+  URL count badge: "X URLs detected"
+    Green under limit | Yellow 80-100% | Red over limit
+  [Category for all — optional]
+  [CAPTCHA]  [TOS checkbox]
+  [Shorten All URLs button]
+  RESULTS TABLE:
+    | Original URL | Short URL | Copy per row |
+  [Copy All]  [Download CSV]  [Download JSON]
+
+BEHAVIOR:
+  1. Count valid URLs on every keyup, update badge color
+  2. Invalid lines highlighted red, skipped on submit
+  3. POST /wp-json/linkrise/v1/public/bulk-shorten
+  4. Progress bar shown during processing
+  5. Per-row status: Success / Error / Duplicate
+  6. Copy All: newline-separated short URLs to clipboard
+  7. CSV: Original URL, Short URL columns
+  8. JSON: array of {original, short_url, shortcode, status}
+
+================================================================================
+SHORTCODE 3: [linkrise_landing]
+================================================================================
+
+ATTRIBUTES:
+  countdown="5", show_destination="true", show_report="true",
+  show_qr="false", theme="light"
+
+ONE WordPress page handles ALL 4 states via ?state= query param.
+
+STATE A — NORMAL REDIRECT (?state=redirect):
+  Logo header
+  "You are being redirected to:"
+  Destination URL (truncated, full on hover)
+  SVG animated countdown ring: stroke-dashoffset animates full to 0
+  "Redirecting in Xs..."
+  [Skip Redirect] button — immediately redirects
+  Footer: [Report this link]   [Safe link verified]
+
+STATE B — PASSWORD PROTECTED (?state=password):
+  Logo header
+  Lock icon + "This link is password protected"
+  "Enter the password to continue:"
+  [Password input with Show/Hide toggle]
+  [Unlock Link button]
+  POST /wp-json/linkrise/v1/public/verify-password {shortcode, password}
+  Success: JS redirects to returned redirect_url
+  Failure: shake animation on input + red error message
+
+STATE C — EXPIRED OR LIMIT (?state=expired or ?state=limit):
+  Logo header
+  Clock icon + "This link has expired"
+  OR stop icon + "This link has reached its click limit"
+  "This short link is no longer active."
+  [Go Back]  [Create Your Own Free Link]
+  Promo: "Want to shorten your own URLs for free? [Try LinkRise]"
+
+STATE D — REPORT ABUSE (?state=report):
+  "Report This Link"
+  Short URL for reference
+  Reason dropdown: Spam / Phishing / Malware / Inappropriate / Other
+  Details textarea (optional)
+  [CAPTCHA]
+  [Submit Report]  [Cancel]
+  POST /wp-json/linkrise/v1/public/report {shortcode, reason, details, captcha_token}
+  Success: thank you message. Link stays active until admin reviews.
+
+
+SECTION 5 — PUBLIC REST API (no auth, rate limited by IP)
+================================================================================
+
+POST /wp-json/linkrise/v1/public/shorten
+  Body: {url, custom_code?, password?, expiry?, category?, captcha_token?}
+  Returns: {short_url, shortcode, qr_url, created_at}
+
+POST /wp-json/linkrise/v1/public/bulk-shorten
+  Body: {urls: string[], category?, captcha_token?}
+  Returns: {results: [{original, short_url, shortcode, status, error?}]}
+
+POST /wp-json/linkrise/v1/public/verify-password
+  Body: {shortcode, password}
+  Returns: {success: true, redirect_url}
+
+POST /wp-json/linkrise/v1/public/report
+  Body: {shortcode, reason, details?, captcha_token?}
+  Returns: {success: true}
+
+GET /wp-json/linkrise/v1/public/stats/{shortcode}
+  Returns: {clicks, created_at, status}  (only if public stats enabled)
+
+ALL PUBLIC ENDPOINTS:
+  - Rate limited per IP (60/hour default, configurable)
+  - CAPTCHA validated server-side before any DB write
+  - Always return friendly JSON errors, never raw PHP
+  - Respect linkrise_admin_only — return 403 with friendly message
+  - Report spam: max 1 report per IP per shortcode per hour (transient)
+
+
+SECTION 6 — ADMIN REST API (manage_options + nonce OR Bearer API key)
+================================================================================
+
+Namespace: linkrise/v1
+
+LINKS:
+  GET    /links  ?page,per_page,search,status,category,campaign_id,tag,sort,dir
+  POST   /links
+  GET    /links/{id}
+  PUT    /links/{id}
+  PATCH  /links/{id}
+  DELETE /links/{id}
+  POST   /links/{id}/duplicate
+  GET    /links/{id}/clicks
+  GET    /links/{id}/qr  ?size,fg,bg,format
+  POST   /links/bulk
+  DELETE /links/bulk
+  PATCH  /links/bulk/status
+
+ANALYTICS:
+  GET    /analytics
+  GET    /analytics/daily  ?days,link_id
+  GET    /analytics/geo
+  GET    /analytics/devices
+  GET    /analytics/referrers
+  GET    /analytics/top-links
+  GET    /analytics/realtime  (last 60 min in 5-min buckets, poll every 30s)
+  DELETE /analytics
+
+CAMPAIGNS:  GET/POST /campaigns | GET/PUT/DELETE /campaigns/{id} | GET /campaigns/{id}/stats
+TEAMS:      GET/POST /teams | GET/PUT/DELETE /teams/{id} | GET/POST/DELETE/PATCH /teams/{id}/members/{uid}
+PIXELS:     GET/POST /pixels | PUT/DELETE /pixels/{id} | POST /pixels/{id}/test
+API KEYS:   GET/POST /api-keys | DELETE /api-keys/{id} | PATCH /api-keys/{id}/rotate
+REPORTS:    GET /reports | PATCH /reports/{id}/dismiss | DELETE /reports/{id}/link
+EXPORT:     GET /export/csv | GET /export/json | GET /export/backup | POST /import | POST /restore
+SETTINGS:   GET/POST /settings | POST /flush-rules | GET /health
+
+Response envelope: {success, data, meta: {page, total, per_page, rate_limit_remaining}}
+
+
+SECTION 7 — REDIRECT ENGINE (13-Step Logic)
+================================================================================
+
+File: includes/Frontend/RedirectEngine.php  Hook: template_redirect priority 1
+
+1.  Get lr_code query var. Empty = bail.
+2.  Check object cache: wp_cache_get('lr_lnk_'.md5($code), 'linkrise')
+3.  Cache miss: query DB. Cache 60 seconds.
+4.  Not found: 404 or wp_redirect(fallback_url)
+5.  status = 'paused': fallback
+6.  start_date set AND now < start_date: 404/fallback (Scheduled)
+7.  expiry_date set AND now > expiry_date: redirect to [landing]?state=expired
+8.  click_limit set AND click_count >= limit: redirect to [landing]?state=limit
+9.  password_hash set:
+      a. Check session/cookie for verified token
+      b. Not verified: redirect to [landing]?state=password
+      c. Verified: continue
+10. rotation_urls set: weighted random select from JSON {url,weight} array
+11. Track click via shutdown hook (AFTER response sent, never blocks redirect):
+      a. Parse UA: device, browser, OS
+      b. Resolve IP: country, city (local GeoIP DB or ipapi.co fallback)
+      c. Detect bot: match UA against pattern list (Googlebot, Bingbot, curl,
+         wget, Python-requests, Scrapy, etc.) — set is_bot=1 if matched
+      d. Extract referrer domain from HTTP_REFERER
+      e. Extract utm_source/medium/campaign/term/content from querystring
+      f. Hash IP as MD5. NEVER store raw IP.
+      g. INSERT into linkrise_clicks
+      h. UPDATE click_count+1, last_clicked=NOW() on linkrise_links
+      i. Fire webhook via WP Cron if configured
+      j. If click_count === click_goal: send goal-reached email
+      k. delete_transient('lr_dashboard_totals')
+      l. wp_cache_delete('lr_lnk_'.md5($shortcode), 'linkrise')
+12. countdown > 0: redirect to [landing]?state=redirect&code=X
+    countdown = 0: wp_redirect($dest, 302); exit;
+13. All landing pages output: <meta name="robots" content="noindex,nofollow">
+
+
+SECTION 8 — ADMIN PANEL: ALL 10 PAGES
+================================================================================
+
+SIDEBAR (#0a0f1e):
+  Logo: "LinkRise v4.0 SaaS"
+  Nav: Dashboard | Links [count] | Analytics | Campaigns [NEW] | QR Studio |
+       Pixels [NEW] | Teams [PRO] | API Keys [PRO] | Reports [red count] | Settings
+  Bottom: [Collapse toggle] [Dark mode toggle]
+
+TOP BAR (sticky 60px):
+  Page title | Search (Cmd+K) | [+ New Link] | User avatar
+
+PAGE 1 — DASHBOARD:
+  Hero banner (gradient #0363fc to #1e40af to #0ea5e9):
+    Greeting + today's stat + top link + 2 CTA buttons
+  4 KPI cards with sparklines: Total Clicks | Today | 7-Day | Active Links
+  Real-time widget: "Live — X clicks in last 60 min" polls every 30s + pulse dot
+  30-day bar chart with hover tooltips + range selector (7D/30D/90D)
+  Device donut + Top 6 countries bars (split row)
+  Top 5 links table with inline sparklines + quick copy
+
+PAGE 2 — LINKS MANAGER:
+  Toolbar: +New Link | Status filter | Category | Tags | Date range | Search |
+           Export (CSV/JSON/Backup) | Import
+  Table: checkbox | Short URL (copy+QR+stats icons) | Title/Dest | Clicks+sparkline |
+         Status badge | Category chip | Tags | Expiry | Actions
+  Row actions: Edit (drawer) | Duplicate | Pause/Resume | View Clicks | Delete
+  Bulk bar (on selection): Delete | Expire | Status | Add to Campaign | Export
+  ADD/EDIT DRAWER (right-side slide panel — NOT a modal):
+    Tab 1 BASIC: Title, Destination URL, Custom Code (availability checker), Category, Tags
+    Tab 2 PROTECTION: Password, Click Limit, Start Date, Expiry Date, Fallback URL
+    Tab 3 UTM BUILDER: source/medium/campaign/term/content + live URL preview +
+                       save/load named preset
+    Tab 4 ADVANCED: Link Rotation (multi-URL with % weights), Click Goal,
+                    Webhook URL, Notes, Campaign, Pixels, Public toggle
+  Click Goal: inline progress bar (blue → yellow 75% → green 100%)
+  Click History Drawer (bottom): clicked_at, country, device, browser, referrer, UTM
+  Pagination: 10/20/50/100 per page selector
+
+PAGE 3 — ANALYTICS:
+  Date range picker: Today/Yesterday/7D/30D/90D/This Month/Custom
+  Optional link scope filter
+  4 KPI cards with trends: Total Clicks | Unique Visitors | Countries | Avg CTR
+  Dual-axis line chart: total clicks + unique visitors
+  3-column: Countries bars | Device donut | Browser bars
+  CLICK HEATMAP: 7 rows (days) x 24 cols (hours)
+    SQL: GROUP BY DAYOFWEEK(clicked_at), HOUR(clicked_at) WHERE is_bot=0
+    CSS opacity intensity. Hover: "Tuesday 3pm — 847 clicks"
+  Referrers table: domain | count | % | trend
+  OS horizontal bars
+
+PAGE 4 — CAMPAIGNS:
+  Cards grid: name, color, dates, link count, clicks, goal progress, status
+  Create/Edit modal: name, slug, description, color picker, dates, goal, assign links
+  Detail view: campaign analytics + member links list
+
+PAGE 5 — QR STUDIO:
+  Links list with [Generate QR] per row
+  Customizer: size slider, fg/bg color pickers, error correction (L/M/Q/H),
+              logo upload, rounded corners toggle, PNG/SVG format
+  Live preview. [Download] [Copy to Clipboard]
+  Bulk export: select links → Download ZIP
+
+PAGE 6 — PIXELS:
+  Cards: type icon, masked pixel ID, event name, assigned links count, last fired, [Test]
+  Create: type, pixel ID, event name, fire-on (all/specific)
+  Assign to links multi-select. Test fires pixel + shows HTTP status.
+
+PAGE 7 — TEAMS:
+  Team card: name, plan badge, member count, link count, owner avatar
+  Members table: avatar, name, email, role badge, joined, last active, actions
+  Invite by email + role selector
+  Role permissions matrix: Owner/Admin/Editor/Viewer
+  Team settings: name, slug, plan
+
+PAGE 8 — API KEYS:
+  Table: name, prefix (lr_live_abcd), scope badge, last used, expires, toggle, rotate, delete
+  Create: name, scope, expiry. Show key ONCE in modal with copy + warning.
+  Usage log: last 20 calls per key (endpoint, method, status, timestamp)
+  [Download Postman Collection] button
+
+PAGE 9 — REPORTS:
+  Stats: Total | Pending | Dismissed | Actioned
+  Tabs: All / Pending / Dismissed / Actioned
+  Table: date | shortcode | reason | details | masked IP | reviewer | actions
+  Bulk dismiss. [Export CSV]
+
+PAGE 10 — SETTINGS (sub-nav: Core/CAPTCHA/Analytics/Security/Notifications/Danger Zone):
+  CORE: Prefix (live preview) | Landing URL | Fallback URL | Rate Limit | Bulk Max |
+        Countdown | TOS URL | Admin Only toggle | Public Registration toggle
+  CAPTCHA: Provider cards (Disabled/reCAPTCHA v3/Turnstile) | Keys | Score slider | Test
+  ANALYTICS: GA4 ID | GA4 Secret | GTM ID | Bot filter toggle | IP anon toggle | Retention
+  SECURITY: Safe Browsing Key | Trusted Proxies | Block Bots | Block VPN toggle
+  NOTIFICATIONS: Admin email + toggles for each alert event
+  DANGER ZONE: Wipe analytics (type DELETE) | Reset settings (type RESET) | Uninstall preview
+  Sticky save button with unsaved-changes orange dot indicator
+
+
+SECTION 9 — ALL 14 ENTERPRISE FEATURES (build every one)
+================================================================================
+
+1.  LINK-IN-BIO  [linkrise_bio user_id="1" theme="dark"]
+    Linktree-style public page. Shows all is_public=1 active links.
+    Customizable: background, button style, colors, profile name/avatar/bio.
+
+2.  A/B ROTATION
+    rotation_urls JSON: [{url,weight}]. Weighted random select per visit.
+    Analytics tracks which variant served. Dashboard shows per-variant bars.
+
+3.  CLICK HEATMAP
+    7x24 CSS grid. SQL: GROUP BY DAYOFWEEK, HOUR WHERE is_bot=0.
+    Opacity = cell_count / max_count. Hover tooltip shows day, hour, count.
+
+4.  WEBHOOKS
+    Async via WP Cron on click. Payload: {event, link_id, shortcode, clicked_at,
+    country, device, browser, utm_*}. HMAC-SHA256 in X-LinkRise-Signature.
+    Retry 3x: 1min, 5min, 15min backoff.
+
+5.  EMAIL NOTIFICATIONS
+    wp_mail() with HTML templates in views/emails/.
+    Events: goal_reached / link_expired / report_filed / invite_accepted.
+
+6.  PUBLIC API KEYS
+    Authorization: Bearer lr_live_XXXX. SHA-256 hash compare. 1000 req/hour.
+    X-RateLimit-Remaining header in every response.
+
+7.  REAL-TIME COUNTER
+    GET /analytics/realtime: 12 x 5-min buckets (last 60 min). Poll 30s.
+    Dashboard: green pulse dot + animated count "X clicks in last hour".
+
+8.  UTM BUILDER (Link Form Tab 3)
+    5 fields. Live URL preview. Save/load named presets in wp_options.
+    Option to auto-append UTM to all links in a campaign.
+
+9.  BOT DETECTION
+    UA patterns: Googlebot, Bingbot, curl, wget, Python-requests, Scrapy, etc.
+    is_bot=1 in clicks. Analytics filter WHERE is_bot=0 by default.
+    Settings toggle to include bot traffic.
+
+10. CLICK GOAL
+    click_goal field. Progress bar: blue → yellow at 75% → green at 100%.
+    Email fires when click_count first equals click_goal.
+
+11. SCHEDULED ACTIVATION
+    start_date field. Engine: NOW() < start_date = 404/fallback.
+    Table shows "Scheduled" status pill with datetime.
+
+12. LINK DUPLICATION
+    POST /links/{id}/duplicate. New auto-generated shortcode.
+    Copy all fields except id, shortcode, click_count, unique_clicks,
+    last_clicked, created_at. Toast shows new short URL with copy button.
+
+13. DARK MODE
+    Toggle in TopBar. Sets document.documentElement.dataset.theme.
+    Full CSS custom property swap. Saved in localStorage.
+
+14. KEYBOARD SHORTCUTS
+    N = new link drawer | Cmd/Ctrl+K = focus search | Esc = close drawer/modal
+    ? = show shortcuts help overlay
+
+
+SECTION 10 — PHP CODING STANDARDS
+================================================================================
+
+ALL SQL via $wpdb->prepare() — zero exceptions:
+  $rows = $wpdb->get_results(
+      $wpdb->prepare(
+          "SELECT * FROM {$table} WHERE status = %s AND team_id = %d LIMIT %d OFFSET %d",
+          $status, $team_id, $per_page, $offset
+      )
+  );
+
+ALL inputs sanitized:
+  $title    = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
+  $long_url = esc_url_raw( wp_unslash( $_POST['long_url'] ?? '' ) );
+  $limit    = absint( $_POST['click_limit'] ?? 0 );
+
+ALL outputs escaped: esc_html(), esc_attr(), esc_url(), wp_kses_post()
+
+ALL REST controllers extend abstract RestController with check_permission():
+  return current_user_can('manage_options') && wp_verify_nonce(...'wp_rest');
+
+ALL responses via WP_REST_Response:
+  return new WP_REST_Response(['success'=>true,'data'=>$data,'meta'=>$meta], 200);
+
+Object cache on all reads:
+  $cached = wp_cache_get($key, 'linkrise');
+  if (false === $cached) {
+      $cached = expensive_query();
+      wp_cache_set($key, $cached, 'linkrise', 60);
+  }
+  // Always invalidate on mutation: wp_cache_delete($key, 'linkrise');
+
+Transients for dashboard aggregates (5-min TTL):
+  set_transient('lr_dashboard_totals', $data, 5 * MINUTE_IN_SECONDS);
+  delete_transient('lr_dashboard_totals'); // after every mutation
+
+Click tracking on shutdown hook (never blocks redirect):
+  add_action('shutdown', function() use ($link, $data) {
+      $this->analytics_service->record_click($link, $data);
+  });
+
+API keys: SHA-256 hash only. NEVER store plaintext:
+  $key  = 'lr_live_' . bin2hex(random_bytes(16));
+  $hash = hash('sha256', $key);
+  // Store $hash only. Return $key to user ONE time only.
+
+NEVER use __return_true as permission_callback on any write endpoint.
+
+
+SECTION 11 — REACT CODING STANDARDS
+================================================================================
+
+API CLIENT:
+  async function request(method, path, body=null, params=null) {
+    const url = new URL(window.LR_DATA.rest_url + path);
+    if (params) Object.entries(params).forEach(([k,v]) => {
+      if (v != null) url.searchParams.set(k, v);
+    });
+    const res = await fetch(url, {
+      method,
+      headers: {'Content-Type':'application/json','X-WP-Nonce':window.LR_DATA.nonce},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Request failed');
+    return json;
+  }
+  export const api = {
+    get:    (path,params) => request('GET',   path,null,params),
+    post:   (path,body)   => request('POST',  path,body),
+    put:    (path,body)   => request('PUT',   path,body),
+    patch:  (path,body)   => request('PATCH', path,body),
+    delete: (path)        => request('DELETE',path),
+  };
+
+CUSTOM HOOKS with cancel flag to prevent memory leaks:
+  function useLinks(filters) {
+    const [state, setState] = useState({data:null,loading:true,error:null});
+    useEffect(() => {
+      let cancelled = false;
+      api.get('links', filters)
+        .then(d => { if (!cancelled) setState({data:d,loading:false,error:null}); })
+        .catch(e => { if (!cancelled) setState({data:null,loading:false,error:e.message}); });
+      return () => { cancelled = true; };
+    }, [JSON.stringify(filters)]);
+    return state;
+  }
+
+ZUSTAND STORE:
+  const useStore = create((set) => ({
+    toasts: [], theme: localStorage.getItem('lr_theme') || 'light',
+    addToast: (msg,type='success') => set(s=>({toasts:[...s.toasts,{id:Date.now(),msg,type}]})),
+    removeToast: (id) => set(s=>({toasts:s.toasts.filter(t=>t.id!==id)})),
+    toggleTheme: () => set(s => {
+      const t = s.theme==='light'?'dark':'light';
+      localStorage.setItem('lr_theme',t);
+      document.documentElement.dataset.theme = t;
+      return {theme:t};
+    }),
+  }));
+
+DEBOUNCED SEARCH (300ms — never API call on every keystroke):
+  const debouncedSearch = useDebounce(searchInput, 300);
+  useEffect(() => { setFilters(f=>({...f,search:debouncedSearch,page:1})); }, [debouncedSearch]);
+
+CODE SPLITTING by page (React.lazy + Suspense). No monolithic bundle.
+
+
+SECTION 12 — LOCALIZED DATA (WordPress to React)
+================================================================================
+
+In AssetLoader.php:
+  wp_localize_script('linkrise-admin', 'LR_DATA', [
+      'rest_url'      => rest_url('linkrise/v1/'),
+      'public_rest'   => rest_url('linkrise/v1/public/'),
+      'nonce'         => wp_create_nonce('wp_rest'),
+      'site_url'      => trailingslashit(site_url()),
+      'prefix'        => lr_prefix(),
+      'version'       => LINKRISE_VERSION,
+      'landing_url'   => get_option('linkrise_landing_url',''),
+      'generator_url' => get_option('linkrise_generator_url',''),
+      'user' => [
+          'id'     => get_current_user_id(),
+          'name'   => wp_get_current_user()->display_name,
+          'email'  => wp_get_current_user()->user_email,
+          'avatar' => get_avatar_url(get_current_user_id(),['size'=>40]),
+          'caps'   => ['manage_options' => current_user_can('manage_options')],
+      ],
+      'settings' => [
+          'captcha_provider' => get_option('linkrise_captcha_provider','disabled'),
+          'captcha_site_key' => get_option('linkrise_recaptcha_site',''),
+          'turnstile_site'   => get_option('linkrise_turnstile_site',''),
+          'rate_limit'       => (int)  get_option('linkrise_rate_limit',60),
+          'bulk_max'         => (int)  get_option('linkrise_bulk_max',50),
+          'admin_only'       => (bool) get_option('linkrise_admin_only',false),
+          'countdown'        => (int)  get_option('linkrise_countdown',5),
+          'tos_url'          => get_option('linkrise_tos_url',''),
+      ],
+  ]);
+
+
+SECTION 13 — SECURITY (NON-NEGOTIABLE)
+================================================================================
+
+ADMIN:
+  - Every write endpoint: permission_callback checks manage_options + nonce
+  - NEVER __return_true on any write endpoint
+  - ALL SQL via $wpdb->prepare()
+  - ALL inputs sanitized, ALL outputs escaped
+  - API keys: SHA-256 hash only, plaintext never in DB
+  - Webhooks: HMAC-SHA256 signature in X-LinkRise-Signature header
+
+PUBLIC:
+  - Rate limit per IP (60/hour, configurable)
+  - CAPTCHA validated server-side before any DB write
+  - Google Safe Browsing API check on every destination URL before save
+  - Respect linkrise_admin_only: 403 with friendly message
+  - Password check: wp_check_password() — no timing attacks
+  - IP: MD5 hash only. Raw IP never stored anywhere.
+  - Report spam: 1 report per IP per shortcode per hour (transient)
+  - Import: MIME check + JSON schema + 10MB max
+
+
+SECTION 14 — PERFORMANCE
+================================================================================
+
+  - Paginated queries: SQL_CALC_FOUND_ROWS + FOUND_ROWS()
+  - Analytics: covering indexes, never SELECT * on large tables
+  - wp_cache_*: wraps all repeated reads, 60s TTL for link lookups
+  - Transients: 5-min TTL for dashboard totals, invalidate on mutation
+  - React: code-split per page (React.lazy + Suspense)
+  - Search: debounced 300ms
+  - Click tracking: shutdown hook only — never adds latency to redirect
+  - Webhooks: fully async via WP Cron — never blocks redirect
+  - GeoIP: local MaxMind DB first, ipapi.co fallback, cache 24h per IP hash
+
+
+SECTION 15 — COMPLETE DELIVERABLES CHECKLIST
+================================================================================
+
+PHP:
+  [ ] linkrise.php                        Plugin header, constants, boot
+  [ ] uninstall.php                       Drop all 8 tables + delete all options
+  [ ] Core/Plugin.php, Loader.php, Autoloader.php
+  [ ] Database/Schema.php (8 tables), Migrator.php
+  [ ] All 6 Repository classes
+  [ ] RestController.php (abstract base)
+  [ ] All 11 Controller classes (including PublicController)
+  [ ] All 10 Service classes
+  [ ] RedirectEngine.php (13-step flow)
+  [ ] Shortcodes.php — [linkrise_generator] full UI + AJAX
+  [ ] Shortcodes.php — [linkrise_bulk_generator] full UI + AJAX
+  [ ] LandingPage.php — [linkrise_landing] all 4 states
+  [ ] LinkInBio.php — [linkrise_bio]
+  [ ] AdminMenu.php, AssetLoader.php
+  [ ] views/emails/ — 4 HTML email templates
+
+REACT:
+  [ ] index.jsx, App.jsx
+  [ ] api/client.js, store/index.js
+  [ ] 4 custom hooks
+  [ ] 3 layout components (Sidebar, TopBar, PageWrapper)
+  [ ] 11 UI components (Button, Input, Modal, Drawer, Toast, Badge,
+                        Tooltip, Toggle, Pagination, EmptyState, Spinner)
+  [ ] 5 chart components (Bar, Line, Donut, Sparkline, Heatmap)
+  [ ] 5 feature components (LinkFormDrawer, ClickDrawer, QRModal, UTMBuilder, StatCard)
+  [ ] 10 page components (all admin pages)
+  [ ] Dark mode CSS token swap
+
+CONFIG:
+  [ ] package.json (@wordpress/scripts)
+  [ ] README.md (setup + build + API reference)
+
+================================================================================
+END OF PROMPT — BUILD EVERYTHING — NO STUBS — NO PLACEHOLDERS
+PRODUCTION QUALITY — ENTERPRISE GRADE — ALL 15 SECTIONS REQUIRED
+================================================================================
