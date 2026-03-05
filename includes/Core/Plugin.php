@@ -7,6 +7,8 @@ use LinkRiseEnterprise\Database\Migrator;
 use LinkRiseEnterprise\API\PublicController;
 use LinkRiseEnterprise\API\LinksController;
 use LinkRiseEnterprise\API\AnalyticsController;
+use LinkRiseEnterprise\Frontend\Shortcodes;
+use LinkRiseEnterprise\Frontend\RedirectEngine;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -23,5 +25,7 @@ class Plugin {
 		( new PublicController() )->register();
 		( new LinksController() )->register();
 		( new AnalyticsController() )->register();
+		( new Shortcodes() )->register();
+		( new RedirectEngine() )->register();
 	}
 }
