@@ -104,7 +104,7 @@ class LinkRise_Frontend {
 
 	public static function seo_head() {
 		if ( get_query_var( 'lr_code' ) || isset( $_GET['lrsc'] ) ) {
-			echo '<meta name="robots" content="noindex,nofollow,noarchive">' . "\n";
+			echo '<meta name="robots" content="noindex, nofollow, noarchive">' . "\n";
 			echo '<meta name="referrer" content="no-referrer-when-downgrade">' . "\n";
 			$schema = array(
 				'@context' => 'https://schema.org',
@@ -352,6 +352,12 @@ LR_Bulk(el,cfg);
 	}
 
 	public static function sc_landing( $atts ) {
+		if ( ! headers_sent() ) {
+			header( "X-Content-Type-Options: nosniff" );
+			header( "X-Frame-Options: SAMEORIGIN" );
+			header( "Referrer-Policy: no-referrer-when-downgrade" );
+		}
+
 		$sc   = isset( $_GET['lrsc'] ) ? sanitize_text_field( wp_unslash( $_GET['lrsc'] ) ) : '';
 		$id   = 'lrl-' . wp_rand( 1000, 9999 );
 

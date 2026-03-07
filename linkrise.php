@@ -83,3 +83,14 @@ function lr_prefix() {
 	$pfx = preg_replace( '/[^a-z0-9\-]/', '', strtolower( trim( $raw ) ) );
 	return $pfx !== '' ? $pfx : LINKRISE_PFX;
 }
+
+
+add_filter( 'wpseo_sitemap_entry', 'linkrise_exclude_from_sitemap', 10, 3 );
+add_filter( 'rank_math/sitemap/entry', 'linkrise_exclude_from_sitemap', 10, 3 );
+function linkrise_exclude_from_sitemap( $url, $type, $object ) {
+	$pfx = lr_prefix();
+	if ( isset( $url['loc'] ) && strpos( $url['loc'], '/' . $pfx . '/' ) !== false ) {
+		return false;
+	}
+	return $url;
+}

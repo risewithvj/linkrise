@@ -199,6 +199,7 @@ class LinkRise_Admin {
 		global $wpdb;
 		$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : array();
 		if ( empty( $ids ) ) { wp_send_json_error( array( 'msg' => 'No IDs.' ) ); }
+		// $ids has been sanitised via array_map('absint') above — IN clause is safe
 		$pl = implode( ',', $ids );
 		$wpdb->query( "DELETE FROM " . LinkRise_DB::lt() . " WHERE id IN ({$pl})" );  // phpcs:ignore
 		$wpdb->query( "DELETE FROM " . LinkRise_DB::ct() . " WHERE link_id IN ({$pl})" ); // phpcs:ignore
@@ -211,6 +212,7 @@ class LinkRise_Admin {
 		global $wpdb;
 		$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : array();
 		if ( empty( $ids ) ) { wp_send_json_error( array( 'msg' => 'No IDs.' ) ); }
+		// $ids has been sanitised via array_map('absint') above — IN clause is safe
 		$pl = implode( ',', $ids );
 		$wpdb->query( "UPDATE " . LinkRise_DB::lt() . " SET expiry_date=NOW() WHERE id IN ({$pl})" ); // phpcs:ignore
 		wp_send_json_success();
@@ -224,6 +226,7 @@ class LinkRise_Admin {
 		if ( empty( $ids ) || ! in_array( $new, array( 'active', 'paused' ), true ) ) {
 			wp_send_json_error( array( 'msg' => 'Invalid bulk status request.' ) );
 		}
+		// $ids has been sanitised via array_map('absint') above — IN clause is safe
 		$pl = implode( ',', $ids );
 		$wpdb->query( "UPDATE " . LinkRise_DB::lt() . " SET status='" . esc_sql( $new ) . "' WHERE id IN ({$pl})" ); // phpcs:ignore
 		wp_send_json_success();
@@ -443,17 +446,31 @@ class LinkRise_Admin {
 
 		// Stat cards
 		echo '<div class="lr-stats">';
+		$ico_eye    = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0363fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>';
+		$ico_users  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#8b5cf6" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>';
+		$ico_today  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+		$ico_chart  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0363fc" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
+		$ico_link   = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#0363fc" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>';
+		$ico_check  = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#22c55e" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
 		$cards = array(
-			array( 'id' => 'st-total',  'ico' => 'TC', 'label' => 'Total Clicks' ),
-			array( 'id' => 'st-unique', 'ico' => 'UC', 'label' => 'Unique Clicks' ),
-			array( 'id' => 'st-today',  'ico' => 'TD', 'label' => 'Today' ),
-			array( 'id' => 'st-week',   'ico' => '7D', 'label' => '7-Day Clicks' ),
-			array( 'id' => 'st-links',  'ico' => 'TL', 'label' => 'Total Links' ),
-			array( 'id' => 'st-active', 'ico' => 'AL', 'label' => 'Active Links' ),
+			array( 'id' => 'st-total',  'ico' => $ico_eye,   'label' => 'Total Clicks' ),
+			array( 'id' => 'st-unique', 'ico' => $ico_users, 'label' => 'Unique Clicks' ),
+			array( 'id' => 'st-today',  'ico' => $ico_today, 'label' => 'Today' ),
+			array( 'id' => 'st-week',   'ico' => $ico_chart, 'label' => '7-Day Clicks' ),
+			array( 'id' => 'st-links',  'ico' => $ico_link,  'label' => 'Total Links' ),
+			array( 'id' => 'st-active', 'ico' => $ico_check, 'label' => 'Active Links' ),
 		);
 		foreach ( $cards as $c ) {
 			echo '<div class="lr-stat">';
-			echo '<span class="lr-stat-ico">' . $c['ico'] . '</span>';
+			$allowed_svg = array(
+				'svg'      => array( 'xmlns'=>true,'width'=>true,'height'=>true,'fill'=>true,'viewBox'=>true,'stroke'=>true,'stroke-width'=>true ),
+				'path'     => array( 'stroke-linecap'=>true,'stroke-linejoin'=>true,'d'=>true,'stroke'=>true,'fill'=>true ),
+				'polyline' => array( 'points'=>true,'stroke'=>true,'fill'=>true ),
+				'line'     => array( 'x1'=>true,'y1'=>true,'x2'=>true,'y2'=>true,'stroke'=>true ),
+				'rect'     => array( 'x'=>true,'y'=>true,'width'=>true,'height'=>true,'rx'=>true,'ry'=>true,'stroke'=>true,'fill'=>true ),
+				'circle'   => array( 'cx'=>true,'cy'=>true,'r'=>true,'stroke'=>true,'fill'=>true ),
+			);
+			echo '<span class="lr-stat-ico">' . wp_kses( $c['ico'], $allowed_svg ) . '</span>';
 			echo '<div><div class="lr-stat-lbl">' . esc_html( $c['label'] ) . '</div>';
 			echo '<div class="lr-stat-val" id="' . esc_attr( $c['id'] ) . '">—</div></div>';
 			echo '</div>';
@@ -708,7 +725,11 @@ class LinkRise_Admin {
 		echo '<div id="lr-modal-qr" class="lr-modal" style="display:none">';
 		echo '<div class="lr-modal-box lr-modal-sm" style="text-align:center">';
 		echo '<div class="lr-modal-hd"><h2>QR Code</h2><button class="lr-modal-cls" data-modal="lr-modal-qr">Close</button></div>';
-		echo '<div class="lr-modal-bd"><img id="lr-qr-img" src="" alt="QR Code" style="width:220px;height:220px;border-radius:8px;border:1px solid #e2e8f0"><div style="margin-top:12px"><a id="lr-qr-dl" href="#" download="linkrise-qr.png" class="lr-btn-primary">Download</a></div></div>';
+		echo '<div class="lr-modal-bd" style="text-align:center">';
+		echo '<img id="lr-qr-img" src="" alt="QR Code" style="width:220px;height:220px;border-radius:8px;border:1px solid #e2e8f0;display:block;margin:0 auto">';
+		echo '<div style="margin-top:14px">';
+		echo '<button id="lr-qr-dl" type="button" class="lr-btn-primary">Download PNG</button>';
+		echo '</div></div>';
 		echo '</div></div>';
 
 		echo '</div>'; // .wrap.lr-admin
