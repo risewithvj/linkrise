@@ -3,13 +3,22 @@
  * Plugin Name:  LinkRise
  * Plugin URI:   https://github.com/risewithvj
  * Description:  Advanced URL shortener — analytics, QR codes, click tracking, geolocation, GA4/GTM, password protection, bulk generation and full security.
- * Version:      3.1.0
+ * Version:      3.2.0
  * Author:       Vijaya Kumar L
  * Author URI:   https://www.linkedin.com/in/vijayakumarl/
+ * Developer:    Vijaya Kumar L
+ * GitHub:       https://github.com/risewithvj
+ * LinkedIn:     https://www.linkedin.com/in/vijayakumarl/
  * Text Domain:  linkrise
  * License:      GPL v2 or later
  * Requires at least: 5.0
  * Requires PHP: 7.2
+ *
+ * @package     LinkRise
+ * @author      Vijaya Kumar L
+ * @copyright   2024 Vijaya Kumar L
+ * @license     GPL-2.0+
+ * @link        https://github.com/risewithvj
  */
 
 // Block direct access
@@ -18,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 // Guard against double-loading (e.g. two copies of plugin active)
 if ( defined( 'LINKRISE_VERSION' ) ) { return; }
 
-define( 'LINKRISE_VERSION',    '3.1.0' );
+define( 'LINKRISE_VERSION',    '3.2.0' );
 define( 'LINKRISE_DIR',        plugin_dir_path( __FILE__ ) );
 define( 'LINKRISE_URL',        plugin_dir_url( __FILE__ ) );
 define( 'LINKRISE_PFX',        'go' ); // fallback prefix

@@ -1,4 +1,11 @@
-/* LinkRise Admin v3.1.0 */
+/*!
+ * LinkRise Admin Stylesheet v3.2.0
+ * Author:    Vijaya Kumar L
+ * GitHub:    https://github.com/risewithvj
+ * LinkedIn:  https://www.linkedin.com/in/vijayakumarl/
+ * Copyright: 2024 Vijaya Kumar L
+ * License:   GPL-2.0+
+ */
 :root{--p:#0363fc;--pd:#0354d4;--g:#22c55e;--r:#ef4444;--o:#f59e0b;--bg:#f9fafb;--card:#fff;--brd:#e5e7eb;--txt:#1f2937;--mut:#6b7280;--rad:8px;--sh:none}
 
 .lr-admin *{box-sizing:border-box}
@@ -151,11 +158,78 @@
 .lr-modal-cls:hover{color:var(--r);background:#fef2f2}
 .lr-modal-bd{padding:22px}
 .lr-modal-ft{padding:14px 22px;border-top:1px solid var(--brd);display:flex;gap:9px;justify-content:flex-end}
-.lr-mfield{margin-bottom:13px}
-.lr-mfield .lr-field-lbl{display:block;font-size:.82rem;font-weight:700;margin-bottom:5px}
-.lr-mfield .lr-input{width:100%}
-.lr-mfield .lr-pw-row{display:flex;gap:7px}
-.lr-mfield .lr-pw-inp{flex:1}
+.lr-mfield{margin-bottom:16px;}
+.lr-mfield .lr-field-lbl{display:block;font-size:.82rem;font-weight:700;margin-bottom:6px;color:#374151;}
+.lr-mfield .lr-input{width:100% !important;display:block !important;border:1.5px solid #d1d5db !important;border-radius:8px !important;padding:10px 13px !important;font-size:.875rem !important;color:#1f2937 !important;background:#ffffff !important;font-family:inherit !important;outline:none !important;box-shadow:none !important;box-sizing:border-box !important;transition:border-color .18s, box-shadow .18s !important;}
+.lr-mfield .lr-input:focus{border-color:#0363fc !important;box-shadow:0 0 0 3px rgba(3,99,252,0.12) !important;outline:none !important;}
+.lr-mfield textarea.lr-input{min-height:90px;resize:vertical;}
+.lr-mfield .lr-pw-row{display:flex !important;gap:8px !important;align-items:stretch !important;}
+.lr-mfield .lr-pw-inp{flex:1 !important;min-width:0 !important;}
+.lr-modal-box input[type="text"],
+.lr-modal-box input[type="url"],
+.lr-modal-box input[type="number"],
+.lr-modal-box input[type="password"],
+.lr-modal-box input[type="datetime-local"],
+.lr-modal-box textarea,
+.lr-modal-box select {
+  border: 1.5px solid #d1d5db !important;
+  border-radius: 8px !important;
+  padding: 10px 13px !important;
+  font-size: .875rem !important;
+  color: #1f2937 !important;
+  background: #ffffff !important;
+  font-family: inherit !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  transition: border-color .18s, box-shadow .18s !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+}
+.lr-modal-box input[type="text"]:focus,
+.lr-modal-box input[type="url"]:focus,
+.lr-modal-box input[type="number"]:focus,
+.lr-modal-box input[type="password"]:focus,
+.lr-modal-box input[type="datetime-local"]:focus,
+.lr-modal-box textarea:focus,
+.lr-modal-box select:focus {
+  border-color: #0363fc !important;
+  box-shadow: 0 0 0 3px rgba(3,99,252,0.12) !important;
+  outline: none !important;
+}
+.lr-modal-box label.lr-field-lbl,
+.lr-modal-box .lr-mfield .lr-field-lbl {
+  display: block !important;
+  font-size: .82rem !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+  margin-bottom: 6px !important;
+  line-height: 1.4;
+}
+.lr-modal-box .lr-modal-bd {
+  padding: 24px !important;
+  background: #ffffff !important;
+}
+.lr-modal-box .lr-modal-hd {
+  padding: 18px 24px !important;
+  border-bottom: 1.5px solid #e5e7eb !important;
+  background: #ffffff !important;
+}
+.lr-modal-box .lr-modal-hd h2 {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  color: #111827 !important;
+  margin: 0 !important;
+}
+.lr-modal-box .lr-modal-ft {
+  padding: 16px 24px !important;
+  border-top: 1.5px solid #e5e7eb !important;
+  background: #fafafa !important;
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: flex-end !important;
+}
 body.lr-modal-open{overflow:hidden}
 
 /* Toast */

@@ -1,3 +1,11 @@
+/*!
+ * LinkRise Admin JS v3.2.0
+ * Author:    Vijaya Kumar L
+ * GitHub:    https://github.com/risewithvj
+ * LinkedIn:  https://www.linkedin.com/in/vijayakumarl/
+ * Copyright: 2024 Vijaya Kumar L
+ * License:   GPL-2.0+
+ */
 /* global jQuery, LR */
 ;(function($) {
   'use strict';

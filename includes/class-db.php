@@ -1,4 +1,15 @@
 <?php
+/**
+ * LinkRise — Database Schema & Table Manager
+ *
+ * @package     LinkRise
+ * @author      Vijaya Kumar L
+ * @developer   Vijaya Kumar L
+ * @github      https://github.com/risewithvj
+ * @linkedin    https://www.linkedin.com/in/vijayakumarl/
+ * @copyright   2024 Vijaya Kumar L
+ * @license     GPL-2.0+
+ */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 if ( class_exists( 'LinkRise_DB' ) ) { return; }
 

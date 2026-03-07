@@ -1,4 +1,15 @@
 <?php
+/**
+ * LinkRise — Admin Panel
+ *
+ * @package     LinkRise
+ * @author      Vijaya Kumar L
+ * @developer   Vijaya Kumar L
+ * @github      https://github.com/risewithvj
+ * @linkedin    https://www.linkedin.com/in/vijayakumarl/
+ * @copyright   2024 Vijaya Kumar L
+ * @license     GPL-2.0+
+ */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 if ( class_exists( 'LinkRise_Admin' ) ) { return; }
 
@@ -7,6 +18,7 @@ class LinkRise_Admin {
 	public static function init() {
 		add_action( 'admin_menu',            array( __CLASS__, 'add_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
+		add_filter( 'admin_footer_text',     array( __CLASS__, 'footer_credit' ) );
 
 		// All AJAX actions
 		$actions = array(
@@ -711,7 +723,10 @@ class LinkRise_Admin {
 		self::mfield( 'number',   'm-limit',  'Click Limit (0 = unlimited)', '0' );
 		self::mfield( 'url',      'm-fb',     'Fallback URL', 'https://yoursite.com/expired' );
 		echo '</div>';
-		echo '<div class="lr-modal-ft"><button id="btn-modal-save" class="lr-btn-primary">Save Link</button> <button class="lr-btn-outline lr-modal-cls" data-modal="lr-modal-link">Cancel</button></div>';
+		echo '<div class="lr-modal-ft">';
+		echo '<button id="btn-modal-save" class="lr-btn-primary" type="button">Save Link</button>';
+		echo '<button class="lr-btn-secondary lr-modal-cls" data-modal="lr-modal-link" type="button">Cancel</button>';
+		echo '</div>';
 		echo '</div></div>';
 
 		// Click History

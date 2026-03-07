@@ -1,3 +1,12 @@
+/*!
+ * LinkRise Frontend JS v3.2.0
+ * Pure Vanilla JS — no React, no jQuery, no wp.element
+ * Author:    Vijaya Kumar L
+ * GitHub:    https://github.com/risewithvj
+ * LinkedIn:  https://www.linkedin.com/in/vijayakumarl/
+ * Copyright: 2024 Vijaya Kumar L
+ * License:   GPL-2.0+
+ */
 /**
  * LinkRise Frontend — Pure Vanilla JS (no React, no jQuery, no wp.element)
  * Compatible with every WordPress version and every theme.

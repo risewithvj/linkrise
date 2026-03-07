@@ -1,4 +1,12 @@
-/* LinkRise Frontend v3.1.0 — Pure CSS, no dependencies */
+/*!
+ * LinkRise Frontend Stylesheet v3.2.0
+ * Pure CSS — no dependencies
+ * Author:    Vijaya Kumar L
+ * GitHub:    https://github.com/risewithvj
+ * LinkedIn:  https://www.linkedin.com/in/vijayakumarl/
+ * Copyright: 2024 Vijaya Kumar L
+ * License:   GPL-2.0+
+ */
 :root{--lr-p:#0363fc;--lr-pd:#0354d4;--lr-g:#22c55e;--lr-r:#ef4444;--lr-bg:#fff;--lr-surf:#f9fafb;--lr-brd:#e5e7eb;--lr-txt:#1f2937;--lr-mut:#6b7280;--lr-rad:8px;--lr-sh:none}
 
 /* Wrapper */
