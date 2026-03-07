@@ -37,7 +37,8 @@
   function closeModal(id){ $('#'+id).hide(); $('body').removeClass('lr-modal-open'); }
 
   /* ── TABS ─────────────────────────────────────────────────────────────── */
-  $(document).on('click', '.lr-nav-btn', function() {
+  $(document).on('click', '.lr-nav-btn', function(e) {
+    e.preventDefault();
     var tab = $(this).data('tab');
     $('.lr-nav-btn').removeClass('lr-nav-active');
     $(this).addClass('lr-nav-active');

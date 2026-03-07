@@ -34,8 +34,8 @@
 /* Stats row */
 .lr-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:16px}
 .lr-stat{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);padding:16px 18px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh)}
-.lr-stat-ico{width:44px;height:44px;border-radius:10px;background:rgba(3,99,252,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.lr-stat-ico svg{width:20px;height:20px;display:block;}
+.lr-stat-ico{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:10px;background:rgba(3,99,252,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:0;}
+.lr-stat-ico svg{width:20px;height:20px;display:block;flex-shrink:0;}
 .lr-stat-lbl{font-size:.73rem;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
 .lr-stat-val{font-size:1.5rem;font-weight:800;line-height:1.2}
 

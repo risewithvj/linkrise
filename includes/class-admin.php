@@ -446,7 +446,7 @@ class LinkRise_Admin {
 		echo '<nav class="lr-nav">';
 		foreach ( $tabs as $slug => $label ) {
 			$cls = ( $slug === $tab ) ? 'lr-nav-btn lr-nav-active' : 'lr-nav-btn';
-			echo '<button class="' . esc_attr( $cls ) . '" data-tab="' . esc_attr( $slug ) . '">' . $label . '</button>'; // phpcs:ignore — label contains only safe HTML
+			echo '<button type="button" class="' . esc_attr( $cls ) . '" data-tab="' . esc_attr( $slug ) . '">' . $label . '</button>'; // phpcs:ignore — label contains only safe HTML
 		}
 		echo '</nav>';
 
