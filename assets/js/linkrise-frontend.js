@@ -107,30 +107,24 @@
 
         var copyBtn = h('button', { class: 'lr-btn-primary', onclick: function() {
           copyText(state.result).then(function() {
-            copyBtn.textContent = '✅ Copied!';
-            setTimeout(function() { copyBtn.textContent = '📋 Copy URL'; }, 2500);
+            copyBtn.textContent = 'Copied';
+            setTimeout(function() { copyBtn.textContent = 'Copy URL'; }, 2500);
           });
-        }}, '📋 Copy URL');
+        }}, 'Copy URL');
 
         var qrImg = h('img', { src: qrSrc, alt: 'QR Code', class: 'lr-qr-img', onerror: function() { this.style.display='none'; } });
 
         root.appendChild(h('div', { class: 'lr-card lr-card-success' }, [
           h('div', { class: 'lr-success-ring' }, '✓'),
-          h('h2', { class: 'lr-card-h2' }, '⚡ Link Ready!'),
+          h('h2', { class: 'lr-card-h2' }, 'Link Ready'),
           h('div', { class: 'lr-result-box' },
             h('a', { href: state.result, target: '_blank', rel: 'noopener noreferrer', class: 'lr-result-url' }, state.result)
           ),
           h('div', { class: 'lr-qr-wrap' }, qrImg),
           h('div', { class: 'lr-result-btns' }, [
             copyBtn,
-            h('a', { href: qrSrc, download: 'qr.png', class: 'lr-btn-secondary' }, '⬇ QR Code'),
-            h('button', { class: 'lr-btn-outline', onclick: function() { render({ result:'', err:'', loading:false, showPw:false }); } }, '+ New Link'),
-          ]),
-          h('div', { class: 'lr-share-row' }, [
-            h('span', { class: 'lr-share-lbl' }, 'Share:'),
-            h('a', { href:'https://twitter.com/intent/tweet?text='+encodeURIComponent('Check this out: '+state.result), target:'_blank', rel:'noopener noreferrer', class:'lr-share-x' }, '𝕏'),
-            h('a', { href:'https://wa.me/?text='+encodeURIComponent(state.result), target:'_blank', rel:'noopener noreferrer', class:'lr-share-wa' }, '💬'),
-            h('a', { href:'https://www.linkedin.com/sharing/share-offsite/?url='+enc, target:'_blank', rel:'noopener noreferrer', class:'lr-share-li' }, 'in'),
+            h('a', { href: qrSrc, download: 'qr.png', class: 'lr-btn-secondary' }, 'Download QR Code'),
+            h('button', { class: 'lr-btn-outline', onclick: function() { render({ result:'', err:'', loading:false, showPw:false, fields:{} }); } }, 'Create New Link'),
           ]),
           h('p', { class: 'lr-card-footer' }, ['Powered by ', h('strong', {}, 'LinkRise')]),
         ]));
@@ -138,13 +132,25 @@
       }
 
       /* ── Form Screen ── */
-      var urlInp    = h('input',  { type:'url',           class:'lr-input', placeholder:'https://example.com/your-long-url', required:'required' });
-      var codeInp   = h('input',  { type:'text',          class:'lr-input', placeholder:'my-promo (optional)' });
-      var pwInp     = h('input',  { type: state.showPw ? 'text' : 'password', class:'lr-input lr-pw-inp', placeholder:'Optional password protection' });
-      var pwToggle  = h('button', { type:'button', class:'lr-pw-tog', onclick: function() { render(Object.assign({}, state, { showPw: !state.showPw })); }}, state.showPw ? 'Hide' : 'Show');
-      var expiryInp = h('input',  { type:'datetime-local', class:'lr-input' });
-      var catInp    = h('input',  { type:'text',           class:'lr-input', placeholder:'e.g. marketing (optional)' });
-      var submitBtn = h('button', { type:'submit', class:'lr-btn-primary lr-btn-full' }, state.loading ? '⏳ Generating…' : '⚡ Shorten URL');
+      var fields    = state.fields || {};
+      var urlInp    = h('input',  { type:'url',           class:'lr-input', placeholder:'https://example.com/your-long-url', required:'required', value: fields.url || '' });
+      var codeInp   = h('input',  { type:'text',          class:'lr-input', placeholder:'my-promo (optional)', value: fields.code || '' });
+      var pwInp     = h('input',  { type: state.showPw ? 'text' : 'password', class:'lr-input lr-pw-inp', placeholder:'Optional password protection', value: fields.password || '' });
+      var expiryInp = h('input',  { type:'datetime-local', class:'lr-input', value: fields.expiry || '' });
+      var catInp    = h('input',  { type:'text',           class:'lr-input', placeholder:'e.g. marketing (optional)', value: fields.category || '' });
+      var pwToggle  = h('button', { type:'button', class:'lr-pw-tog', onclick: function() {
+        render(Object.assign({}, state, {
+          showPw: !state.showPw,
+          fields: {
+            url: urlInp.value,
+            code: codeInp.value,
+            password: pwInp.value,
+            expiry: expiryInp.value,
+            category: catInp.value,
+          }
+        }));
+      }}, state.showPw ? 'Hide' : 'Show');
+      var submitBtn = h('button', { type:'submit', class:'lr-btn-primary lr-btn-full' }, state.loading ? 'Generating...' : 'Shorten URL');
       if (state.loading) { submitBtn.disabled = true; }
 
       var tsDiv = null;
@@ -175,9 +181,19 @@
         };
         post(cfg.ajaxUrl, body, function(res) {
           if (res.success) {
-            render({ result: res.data.url });
+            render({ result: res.data.url, fields:{} });
           } else {
-            render(Object.assign({}, state, { loading: false, err: res.data && res.data.msg ? res.data.msg : 'Something went wrong. Please try again.' }));
+            render(Object.assign({}, state, {
+              loading: false,
+              err: res.data && res.data.msg ? res.data.msg : 'Something went wrong. Please try again.',
+              fields: {
+                url: urlInp.value,
+                code: codeInp.value,
+                password: pwInp.value,
+                expiry: expiryInp.value,
+                category: catInp.value,
+              }
+            }));
           }
         });
       }
@@ -185,7 +201,13 @@
       var form = h('form', { onsubmit: function(e) {
         e.preventDefault();
         if (!urlInp.value.trim()) return;
-        render(Object.assign({}, state, { loading: true, err: '' }));
+        render(Object.assign({}, state, { loading: true, err: '', fields: {
+          url: urlInp.value,
+          code: codeInp.value,
+          password: pwInp.value,
+          expiry: expiryInp.value,
+          category: catInp.value,
+        } }));
 
         if (cfg.captcha === 'recaptcha' && cfg.rcSite) {
           rcExecute(cfg.rcSite, 'create', doSubmit);
@@ -195,7 +217,7 @@
           doSubmit('');
         }
       }}, [
-        state.err ? h('div', { class:'lr-error-box' }, '⚠ ' + state.err) : null,
+        state.err ? h('div', { class:'lr-error-box' }, state.err) : null,
         h('div', { class:'lr-field' }, [h('label', { class:'lr-lbl' }, 'Destination URL *'), urlInp]),
         h('div', { class:'lr-row2' }, [
           h('div', { class:'lr-field' }, [h('label', { class:'lr-lbl' }, 'Custom Code'), codeInp]),
@@ -211,7 +233,7 @@
       ]);
 
       root.appendChild(h('div', { class:'lr-card' }, [
-        h('h2', { class:'lr-card-h2' }, '⚡ LinkRise Generator'),
+        h('h2', { class:'lr-card-h2' }, 'LinkRise Generator'),
         h('p', { class:'lr-card-sub' }, 'Transform any URL into a powerful shortlink.'),
         form,
         h('p', { class:'lr-card-footer' }, ['Powered by ', h('strong', {}, 'LinkRise')]),
@@ -230,7 +252,7 @@
       }
     }
 
-    render({ result:'', err:'', loading:false, showPw:false });
+    render({ result:'', err:'', loading:false, showPw:false, fields:{} });
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -252,15 +274,15 @@
         root.appendChild(h('div', { class:'lr-card lr-card-success' }, [
           h('div', { class:'lr-success-ring' }, '✓'),
           h('h2', { class:'lr-card-h2' }, state.results.results.length + ' Links Created!'),
-          state.results.errors.length ? h('div', { class:'lr-error-box' }, '⚠ Skipped ' + state.results.errors.length + ' invalid URLs.') : null,
+          state.results.errors.length ? h('div', { class:'lr-error-box' }, 'Skipped ' + state.results.errors.length + ' invalid URLs.') : null,
           h('div', { class:'lr-result-btns' }, [
-            h('button', { class:'lr-btn-primary', onclick:function() { copyText(allUrls).then(function() { this.textContent='✅ Copied!'; setTimeout(function(){ this.textContent='📋 Copy All'; }.bind(this),2000); }.bind(this)); } }, '📋 Copy All'),
+            h('button', { class:'lr-btn-primary', onclick:function() { copyText(allUrls).then(function() { this.textContent='Copied'; setTimeout(function(){ this.textContent='Copy All'; }.bind(this),2000); }.bind(this)); } }, 'Copy All'),
             h('button', { class:'lr-btn-secondary', onclick:function() {
               var csv='Short URL,Original URL\n'+state.results.results.map(function(r){return '"'+r.short+'","'+r.orig+'"';}).join('\n');
               var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='linkrise-bulk.csv';
               document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            }}, '⬇ CSV'),
-            h('button', { class:'lr-btn-outline', onclick:function() { render({ results:null, err:'', loading:false }); } }, '+ More'),
+            }}, 'Download CSV'),
+            h('button', { class:'lr-btn-outline', onclick:function() { render({ results:null, err:'', loading:false }); } }, 'Create More'),
           ]),
           h('div', { class:'lr-tbl-wrap', html:'<table class="lr-tbl"><thead><tr><th>Short URL</th><th>Original</th></tr></thead><tbody>'+rows+'</tbody></table>' }),
         ]));
@@ -270,11 +292,11 @@
       var txtArea = h('textarea', { class:'lr-input lr-textarea', rows:'8', placeholder:'https://example.com/page-one\nhttps://example.com/page-two\nhttps://example.com/page-three' });
       var pwInp   = h('input',    { type:'password', class:'lr-input', placeholder:'Apply to all (optional)' });
       var expInp  = h('input',    { type:'datetime-local', class:'lr-input' });
-      var btn     = h('button',   { type:'submit', class:'lr-btn-primary lr-btn-full' }, state.loading ? '⏳ Generating…' : '⚡ Generate All Links');
+      var btn     = h('button',   { type:'submit', class:'lr-btn-primary lr-btn-full' }, state.loading ? 'Generating...' : 'Generate All Links');
       if (state.loading) btn.disabled = true;
 
       root.appendChild(h('div', { class:'lr-card' }, [
-        h('h2', { class:'lr-card-h2' }, '⚡ Bulk Generator'),
+        h('h2', { class:'lr-card-h2' }, 'Bulk Generator'),
         h('p',  { class:'lr-card-sub' }, 'Paste one URL per line — shorten them all at once.'),
         h('form', { onsubmit: function(e) {
           e.preventDefault();
@@ -299,7 +321,7 @@
             });
           }
         }}, [
-          state.err ? h('div', { class:'lr-error-box' }, '⚠ ' + state.err) : null,
+          state.err ? h('div', { class:'lr-error-box' }, state.err) : null,
           h('div', { class:'lr-field' }, [h('label', { class:'lr-lbl' }, 'URLs (one per line) *'), txtArea]),
           h('div', { class:'lr-row2' }, [
             h('div', { class:'lr-field' }, [h('label', { class:'lr-lbl' }, 'Password (optional)'), pwInp]),
@@ -350,13 +372,13 @@
       if (phase === 'countdown') {
         var pct = Math.round((timer / (cfg.countdown || 1)) * 100);
         root.appendChild(h('div', { class:'lr-landing-card' }, [
-          h('div', { class:'lr-landing-ico' }, '⚡'),
+          h('div', { class:'lr-landing-ico', html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3"></path><path d="M12 18v3"></path><path d="M4.9 4.9l2.1 2.1"></path><path d="M17 17l2.1 2.1"></path><path d="M3 12h3"></path><path d="M18 12h3"></path><path d="M4.9 19.1 7 17"></path><path d="M17 7l2.1-2.1"></path></svg>' }),
           h('h2', { class:'lr-landing-h2' }, 'Redirecting…'),
           h('p',  { class:'lr-landing-sub' }, 'You will be redirected in'),
           h('div', { id:'lr-cd-num', class:'lr-cd-num' }, String(timer)),
           h('div', { class:'lr-cd-track' }, h('div', { id:'lr-cd-bar', class:'lr-cd-bar', style:'width:'+pct+'%' })),
           destUrl ? h('p', { class:'lr-dest-preview' }, 'To: ' + destUrl.slice(0, 60) + (destUrl.length > 60 ? '…' : '')) : null,
-          h('button', { class:'lr-btn-primary', onclick: function() { clearInterval(intervalId); window.location.href = destUrl; } }, 'Go Now →'),
+          h('button', { class:'lr-btn-primary', onclick: function() { clearInterval(intervalId); window.location.href = destUrl; } }, 'Continue Now'),
           reportBtn(),
         ]));
         return;
@@ -371,7 +393,7 @@
         var unlockBtn = h('button', { class:'lr-btn-primary lr-btn-full', onclick: function() {
           var pwd = pwInp.value;
           if (!pwd) return;
-          unlockBtn.textContent = '⏳ Checking…';
+          unlockBtn.textContent = 'Checking...';
           unlockBtn.disabled = true;
           post(cfg.ajaxUrl, { action:'linkrise_verify_password', nonce:cfg.nonce, sc:cfg.sc, pwd:pwd }, function(res) {
             if (res.success && res.data && res.data.url) {
@@ -380,16 +402,16 @@
               render('password', { err: res.data && res.data.msg ? res.data.msg : 'Incorrect password.' });
             }
           });
-        }}, '🔓 Unlock Link');
+        }}, 'Unlock Link');
 
         // Submit on Enter key
         pwInp.addEventListener('keydown', function(e) { if (e.key==='Enter') unlockBtn.click(); });
 
         root.appendChild(h('div', { class:'lr-landing-card' }, [
-          h('div', { class:'lr-landing-ico' }, '🔒'),
+          h('div', { class:'lr-landing-ico', html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 1 1 8 0v3"></path><circle cx="12" cy="16" r="1"></circle></svg>' }),
           h('h2', { class:'lr-landing-h2' }, 'Password Protected'),
           h('p',  { class:'lr-landing-sub' }, 'Enter the password to access this link.'),
-          state.err ? h('div', { class:'lr-error-box' }, '⚠ ' + state.err) : null,
+          state.err ? h('div', { class:'lr-error-box' }, state.err) : null,
           h('div', { class:'lr-pw-row' }, [pwInp, showBtn]),
           unlockBtn,
           reportBtn(),
@@ -404,7 +426,7 @@
       var link    = h('button', { class:'lr-report-link', onclick: function() {
         shown = !shown;
         if (shown) { showForm(); } else { wrap.innerHTML=''; wrap.appendChild(link); }
-      }}, '🚩 Report this link');
+      }}, 'Report this link');
       wrap.appendChild(link);
 
       function showForm() {
@@ -421,7 +443,7 @@
           if (!sel.value) return;
           sub.textContent='Submitting…'; sub.disabled=true;
           post(cfg.ajaxUrl, { action:'linkrise_report', nonce:cfg.nonce, sc:cfg.sc, url:destUrl, reason:sel.value, details:det.value }, function() {
-            wrap.innerHTML = '<div class="lr-success-notice">✅ Report submitted. Thank you.</div>';
+            wrap.innerHTML = '<div class="lr-success-notice">Report submitted. Thank you.</div>';
           });
         }}, 'Submit Report');
         wrap.innerHTML='';
@@ -436,7 +458,7 @@
     } else if (cfg.target) {
       startCountdown(cfg.target);
     } else {
-      root.innerHTML = '<div class="lr-landing-card"><p class="lr-error">⚠ Invalid link configuration.</p></div>';
+      root.innerHTML = '<div class="lr-landing-card"><p class="lr-error">Invalid link configuration.</p></div>';
     }
   }
 

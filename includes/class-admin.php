@@ -17,9 +17,11 @@ class LinkRise_Admin {
 			'lr_get_clicks'         => 'ajax_clicks',
 			'lr_bulk_delete'        => 'ajax_bulk_delete',
 			'lr_bulk_expire'        => 'ajax_bulk_expire',
+			'lr_bulk_status'        => 'ajax_bulk_status',
 			'lr_wipe_analytics'     => 'ajax_wipe_analytics',
 			'lr_dismiss_report'     => 'ajax_dismiss_report',
 			'lr_delete_report_link' => 'ajax_delete_report_link',
+			'lr_bulk_delete_reports'=> 'ajax_bulk_delete_reports',
 			'lr_flush_rules'        => 'ajax_flush_rules',
 			'lr_export_csv'         => 'ajax_export_csv',
 			'lr_export_json'        => 'ajax_export_json',
@@ -43,7 +45,8 @@ class LinkRise_Admin {
 	// Guard for file-download actions (nonce in GET param)
 	private static function guard_get() {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'Unauthorized', 403 ); }
-		if ( ! wp_verify_nonce( isset( $_GET['nonce'] ) ? $_GET['nonce'] : '', 'lr_admin_nonce' ) ) { wp_die( 'Security check failed', 403 ); }
+		$nonce = isset( $_GET['nonce'] ) ? sanitize_text_field( wp_unslash( $_GET['nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'lr_admin_nonce' ) ) { wp_die( 'Security check failed', 403 ); }
 	}
 
 	public static function add_menu() {
@@ -62,6 +65,7 @@ class LinkRise_Admin {
 			'confirm' => array(
 				'del'     => 'Delete this link and all its click history? This cannot be undone.',
 				'bulkDel' => 'Delete all selected links permanently?',
+				'bulkReportsDel' => 'Delete all selected reports?',
 				'wipe'    => 'Wipe ALL analytics data? This cannot be undone.',
 				'restore' => 'Restore from backup? Duplicate shortcodes will be skipped.',
 			),
@@ -160,6 +164,7 @@ class LinkRise_Admin {
 		$lt = LinkRise_DB::lt(); $ct = LinkRise_DB::ct();
 		$data = array(
 			'total_clicks'  => (int) $wpdb->get_var( "SELECT COUNT(id) FROM {$ct}" ), // phpcs:ignore
+			'unique_clicks' => (int) $wpdb->get_var( "SELECT COUNT(DISTINCT ip_hash) FROM {$ct} WHERE ip_hash!=''" ), // phpcs:ignore
 			'today'         => (int) $wpdb->get_var( "SELECT COUNT(id) FROM {$ct} WHERE DATE(clicked_at)=CURDATE()" ), // phpcs:ignore
 			'week'          => (int) $wpdb->get_var( "SELECT COUNT(id) FROM {$ct} WHERE clicked_at>=DATE_SUB(NOW(),INTERVAL 7 DAY)" ), // phpcs:ignore
 			'total_links'   => (int) $wpdb->get_var( "SELECT COUNT(id) FROM {$lt}" ), // phpcs:ignore
@@ -211,6 +216,19 @@ class LinkRise_Admin {
 		wp_send_json_success();
 	}
 
+	public static function ajax_bulk_status() {
+		self::guard();
+		global $wpdb;
+		$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : array();
+		$new = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : '';
+		if ( empty( $ids ) || ! in_array( $new, array( 'active', 'paused' ), true ) ) {
+			wp_send_json_error( array( 'msg' => 'Invalid bulk status request.' ) );
+		}
+		$pl = implode( ',', $ids );
+		$wpdb->query( "UPDATE " . LinkRise_DB::lt() . " SET status='" . esc_sql( $new ) . "' WHERE id IN ({$pl})" ); // phpcs:ignore
+		wp_send_json_success();
+	}
+
 	public static function ajax_wipe_analytics() {
 		self::guard();
 		global $wpdb;
@@ -246,6 +264,16 @@ class LinkRise_Admin {
 		wp_send_json_success();
 	}
 
+	public static function ajax_bulk_delete_reports() {
+		self::guard();
+		global $wpdb;
+		$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : array();
+		if ( empty( $ids ) ) { wp_send_json_error( array( 'msg' => 'No report IDs.' ) ); }
+		$pl = implode( ',', $ids );
+		$wpdb->query( 'DELETE FROM ' . LinkRise_DB::rt() . " WHERE id IN ({$pl})" ); // phpcs:ignore
+		wp_send_json_success();
+	}
+
 	// ═══════════════════════════════════════════════════════════════════════
 	// AJAX — FLUSH RULES
 	// ═══════════════════════════════════════════════════════════════════════
@@ -254,7 +282,7 @@ class LinkRise_Admin {
 		self::guard();
 		LinkRise_Frontend::add_rewrite_rules();
 		flush_rewrite_rules( false );
-		wp_send_json_success( array( 'msg' => '✅ Rewrite rules flushed! Short links should now work.' ) );
+		wp_send_json_success( array( 'msg' => 'Rewrite rules flushed. Short links should now work.' ) );
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════
@@ -354,11 +382,12 @@ class LinkRise_Admin {
 		$lt = LinkRise_DB::lt();
 		$rt = LinkRise_DB::rt();
 
-		// Pagination / search
-		$valid_pp = array( 10, 20, 50, 100 );
-		$pp       = isset( $_GET['pp'] ) && in_array( (int) $_GET['pp'], $valid_pp, true ) ? (int) $_GET['pp'] : 20;
+		// Pagination / search (fixed 20 per page)
+		$pp       = 20;
 		$pg       = max( 1, (int) ( isset( $_GET['pg'] ) ? $_GET['pg'] : 1 ) );
 		$off      = ( $pg - 1 ) * $pp;
+		$rpg      = max( 1, (int) ( isset( $_GET['rpg'] ) ? $_GET['rpg'] : 1 ) );
+		$roff     = ( $rpg - 1 ) * $pp;
 		$s        = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 
 		if ( $s ) {
@@ -371,9 +400,10 @@ class LinkRise_Admin {
 		}
 
 		$pages    = max( 1, (int) ceil( $total / $pp ) );
-		$reports  = $wpdb->get_results( "SELECT * FROM {$rt} ORDER BY reported_at DESC" ); // phpcs:ignore
-		$n_rep    = count( $reports );
-		$tab      = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'analytics';
+		$n_rep    = (int) $wpdb->get_var( "SELECT COUNT(id) FROM {$rt}" ); // phpcs:ignore
+		$rep_pages = max( 1, (int) ceil( $n_rep / $pp ) );
+		$reports  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$rt} ORDER BY reported_at DESC LIMIT %d OFFSET %d", $pp, $roff ) );
+		$tab      = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'analytics';
 		$saved    = isset( $_GET['saved'] ) && $_GET['saved'] === '1';
 		$pfx      = lr_prefix();
 		$site_url = trailingslashit( site_url() );
@@ -382,7 +412,7 @@ class LinkRise_Admin {
 
 		// ── Header ────────────────────────────────────────────────────────
 		echo '<div class="lr-hdr">';
-		echo '<div><h1>⚡ LinkRise <span class="lr-ver">v' . esc_html( LINKRISE_VERSION ) . '</span></h1>';
+		echo '<div><h1>LinkRise <span class="lr-ver">v' . esc_html( LINKRISE_VERSION ) . '</span></h1>';
 		echo '<p class="lr-hdr-sub">Advanced URL Shortener &amp; Analytics Platform</p></div>';
 		echo '<div class="lr-hdr-status"><span class="lr-dot"></span> System Online</div>';
 		echo '</div>';
@@ -393,10 +423,10 @@ class LinkRise_Admin {
 
 		// ── Tab Nav ───────────────────────────────────────────────────────
 		$tabs = array(
-			'analytics' => '📊 Analytics',
-			'links'     => '🔗 Links <span class="lr-cnt">' . esc_html( $total ) . '</span>',
-			'reports'   => '🚨 Reports' . ( $n_rep ? ' <span class="lr-cnt lr-cnt-red">' . esc_html( $n_rep ) . '</span>' : '' ),
-			'settings'  => '⚙️ Settings',
+			'analytics' => 'Analytics',
+			'links'     => 'Links <span class="lr-cnt">' . esc_html( $total ) . '</span>',
+			'reports'   => 'Reports' . ( $n_rep ? ' <span class="lr-cnt lr-cnt-red">' . esc_html( $n_rep ) . '</span>' : '' ),
+			'settings'  => 'Settings',
 		);
 		echo '<nav class="lr-nav">';
 		foreach ( $tabs as $slug => $label ) {
@@ -414,11 +444,12 @@ class LinkRise_Admin {
 		// Stat cards
 		echo '<div class="lr-stats">';
 		$cards = array(
-			array( 'id' => 'st-total',  'ico' => '🖱️', 'label' => 'Total Clicks' ),
-			array( 'id' => 'st-today',  'ico' => '📅', 'label' => 'Today' ),
-			array( 'id' => 'st-week',   'ico' => '📈', 'label' => '7-Day Clicks' ),
-			array( 'id' => 'st-links',  'ico' => '🔗', 'label' => 'Total Links' ),
-			array( 'id' => 'st-active', 'ico' => '✅', 'label' => 'Active Links' ),
+			array( 'id' => 'st-total',  'ico' => 'TC', 'label' => 'Total Clicks' ),
+			array( 'id' => 'st-unique', 'ico' => 'UC', 'label' => 'Unique Clicks' ),
+			array( 'id' => 'st-today',  'ico' => 'TD', 'label' => 'Today' ),
+			array( 'id' => 'st-week',   'ico' => '7D', 'label' => '7-Day Clicks' ),
+			array( 'id' => 'st-links',  'ico' => 'TL', 'label' => 'Total Links' ),
+			array( 'id' => 'st-active', 'ico' => 'AL', 'label' => 'Active Links' ),
 		);
 		foreach ( $cards as $c ) {
 			echo '<div class="lr-stat">';
@@ -439,7 +470,7 @@ class LinkRise_Admin {
 		// Top links table
 		echo '<div class="lr-chart-box" style="margin-top:16px">';
 		echo '<div class="lr-flex-between"><h3>Top Links</h3>';
-		echo '<button id="btn-wipe" class="lr-btn-danger-sm">🗑 Wipe Analytics</button></div>';
+		echo '<button id="btn-wipe" class="lr-btn-danger-sm">Wipe Analytics</button></div>';
 		echo '<div class="lr-tbl-wrap"><table class="lr-tbl" id="lr-top-tbl"><thead><tr><th>Short URL</th><th>Destination</th><th>Clicks</th></tr></thead><tbody><tr><td colspan="3" class="lr-cell-load">Loading…</td></tr></tbody></table></div>';
 		echo '</div>';
 		echo '</div>'; // #lr-panel-analytics
@@ -452,25 +483,26 @@ class LinkRise_Admin {
 
 		// Toolbar
 		echo '<div class="lr-toolbar">';
-		echo '<button id="btn-add" class="lr-btn-primary">+ Add New Link</button>';
+		echo '<button id="btn-add" class="lr-btn-primary">Add New Link</button>';
 
 		// Search form
 		echo '<form method="get" class="lr-search-form">';
 		echo '<input type="hidden" name="page" value="linkrise">';
 		echo '<input type="hidden" name="tab" value="links">';
-		echo '<input type="hidden" name="pp" value="' . esc_attr( $pp ) . '">';
 		echo '<input class="lr-search-inp" type="text" name="s" value="' . esc_attr( $s ) . '" placeholder="Search links, URLs…">';
-		echo '<button type="submit" class="lr-btn-secondary">🔍</button>';
+		echo '<button type="submit" class="lr-btn-secondary">Search</button>';
 		if ( $s ) {
-			echo '<a href="' . esc_url( admin_url( 'admin.php?page=linkrise&tab=links' ) ) . '" class="lr-btn-outline">✕</a>';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=linkrise&tab=links' ) ) . '" class="lr-btn-outline">Clear</a>';
 		}
 		echo '</form>';
 
 		// Bulk bar
 		echo '<div class="lr-bulk-bar" id="lr-bulk-bar" style="display:none">';
 		echo '<span id="lr-bulk-cnt">0 selected</span> ';
-		echo '<button id="btn-bulk-del" class="lr-btn-danger-sm">Delete</button> ';
-		echo '<button id="btn-bulk-exp" class="lr-btn-secondary-sm">Expire</button>';
+		echo '<button id="btn-bulk-del" class="lr-btn-danger-sm">Bulk Delete</button> ';
+		echo '<button id="btn-bulk-exp" class="lr-btn-secondary-sm">Set Expired</button>';
+		echo '<button id="btn-bulk-pause" class="lr-btn-secondary-sm">Set Paused</button>';
+		echo '<button id="btn-bulk-activate" class="lr-btn-secondary-sm">Set Active</button>';
 		echo '</div>';
 		echo '</div>'; // .lr-toolbar
 
@@ -482,7 +514,7 @@ class LinkRise_Admin {
 		echo '</tr></thead><tbody>';
 
 		if ( empty( $links ) ) {
-			echo '<tr><td colspan="8" class="lr-cell-empty">No links yet. Click <strong>+ Add New Link</strong> to get started.</td></tr>';
+			echo '<tr><td colspan="8" class="lr-cell-empty">No links yet. Click <strong>Add New Link</strong> to get started.</td></tr>';
 		} else {
 			foreach ( $links as $l ) {
 				$short   = $site_url . ( $l->custom_prefix ?: $pfx ) . '/' . $l->shortcode;
@@ -510,8 +542,8 @@ class LinkRise_Admin {
 				echo '<td class="lr-cell-short">';
 				echo '<a href="' . esc_url( $short ) . '" target="_blank" class="lr-link">' . esc_html( ( $l->custom_prefix ?: $pfx ) . '/' . $l->shortcode ) . '</a>';
 				echo '<div class="lr-mini-acts">';
-				echo '<button class="lr-ico-btn lr-copy-btn" data-url="' . esc_attr( $short ) . '" title="Copy">📋</button>';
-				echo '<button class="lr-ico-btn lr-qr-btn" data-url="' . esc_attr( $short ) . '" title="QR Code">⬛</button>';
+				echo '<button class="lr-ico-btn lr-copy-btn" data-url="' . esc_attr( $short ) . '" title="Copy">Copy</button>';
+				echo '<button class="lr-ico-btn lr-qr-btn" data-url="' . esc_attr( $short ) . '" title="QR Code">QR</button>';
 				echo '</div></td>';
 
 				// Destination
@@ -519,7 +551,7 @@ class LinkRise_Admin {
 
 				// Clicks
 				echo '<td><strong>' . esc_html( number_format( (int) $l->click_count ) ) . '</strong> ';
-				echo '<button class="lr-ico-btn lr-hist-btn" data-id="' . esc_attr( $l->id ) . '" title="View Clicks">👁</button></td>';
+				echo '<button class="lr-ico-btn lr-hist-btn" data-id="' . esc_attr( $l->id ) . '" title="View Clicks">View</button></td>';
 
 				// Status pill
 				echo '<td><span class="lr-pill lr-pill-' . esc_attr( $status ) . '">' . esc_html( ucfirst( $status ) ) . '</span></td>';
@@ -542,7 +574,7 @@ class LinkRise_Admin {
 		if ( $pages > 1 ) {
 			echo '<div class="lr-pages">';
 			for ( $p = 1; $p <= $pages; $p++ ) {
-				$url = add_query_arg( array( 'page' => 'linkrise', 'tab' => 'links', 'pg' => $p, 'pp' => $pp, 's' => $s ), admin_url( 'admin.php' ) );
+				$url = add_query_arg( array( 'page' => 'linkrise', 'tab' => 'links', 'pg' => $p, 's' => $s ), admin_url( 'admin.php' ) );
 				echo '<a href="' . esc_url( $url ) . '" class="lr-pgbtn' . ( $p === $pg ? ' lr-pgbtn-a' : '' ) . '">' . esc_html( $p ) . '</a>';
 			}
 			echo '</div>';
@@ -550,11 +582,12 @@ class LinkRise_Admin {
 
 		// Export row
 		echo '<div class="lr-export-row">';
-		echo '<a href="#" id="btn-csv" class="lr-btn-outline lr-btn-sm">⬇ CSV</a>';
-		echo '<a href="#" id="btn-json" class="lr-btn-outline lr-btn-sm">⬇ JSON</a>';
-		echo '<label class="lr-btn-outline lr-btn-sm">⬆ Import <input type="file" id="import-file" accept=".json" style="display:none"></label>';
-		echo '<a href="#" id="btn-backup" class="lr-btn-outline lr-btn-sm">💾 Backup</a>';
-		echo '<label class="lr-btn-outline lr-btn-sm">♻️ Restore <input type="file" id="restore-file" accept=".json" style="display:none"></label>';
+		echo '<span class="lr-tools-label">Tools</span>';
+		echo '<a href="#" id="btn-csv" class="lr-btn-outline lr-btn-sm">Export CSV</a>';
+		echo '<a href="#" id="btn-json" class="lr-btn-outline lr-btn-sm">Export JSON</a>';
+		echo '<label class="lr-btn-outline lr-btn-sm">Import <input type="file" id="import-file" accept=".json" style="display:none"></label>';
+		echo '<a href="#" id="btn-backup" class="lr-btn-outline lr-btn-sm">Backup</a>';
+		echo '<label class="lr-btn-outline lr-btn-sm">Restore <input type="file" id="restore-file" accept=".json" style="display:none"></label>';
 		echo '</div>';
 
 		echo '</div>'; // #lr-panel-links
@@ -564,14 +597,16 @@ class LinkRise_Admin {
 		// ════════════════════════════════════════════════════════════════
 		$show = $tab === 'reports' ? '' : ' style="display:none"';
 		echo '<div id="lr-panel-reports" class="lr-panel"' . $show . '>';
+		echo '<div class="lr-bulk-bar" id="lr-rpt-bulk-bar" style="display:none"><span id="lr-rpt-bulk-cnt">0 selected</span> <button id="btn-rpt-bulk-del" class="lr-btn-danger-sm">Bulk Delete</button></div>';
 		if ( empty( $reports ) ) {
-			echo '<div class="lr-empty-state">✅ No abuse reports — you\'re all clear!</div>';
+			echo '<div class="lr-empty-state">No abuse reports.</div>';
 		} else {
 			echo '<div class="lr-tbl-wrap"><table class="lr-tbl"><thead><tr>';
-			echo '<th>Date</th><th>Code</th><th>Reason</th><th>Details</th><th>Reporter IP</th><th>Actions</th>';
+			echo '<th><input type="checkbox" id="lr-rpt-chk-all"></th><th>Date</th><th>Code</th><th>Reason</th><th>Details</th><th>Reporter IP</th><th>Actions</th>';
 			echo '</tr></thead><tbody>';
 			foreach ( $reports as $r ) {
 				echo '<tr id="rpt-' . esc_attr( $r->id ) . '">';
+				echo '<td><input type="checkbox" class="lr-rpt-row-chk" value="' . esc_attr( $r->id ) . '"></td>';
 				echo '<td>' . esc_html( gmdate( 'M j, Y H:i', strtotime( $r->reported_at ) ) ) . '</td>';
 				echo '<td><a href="' . esc_url( $site_url . $pfx . '/' . $r->shortcode ) . '" target="_blank">' . esc_html( $r->shortcode ) . '</a></td>';
 				echo '<td>' . esc_html( $r->reason ) . '</td>';
@@ -584,6 +619,14 @@ class LinkRise_Admin {
 			}
 			echo '</tbody></table></div>';
 		}
+		if ( $rep_pages > 1 ) {
+			echo '<div class="lr-pages">';
+			for ( $rp = 1; $rp <= $rep_pages; $rp++ ) {
+				$url = add_query_arg( array( 'page' => 'linkrise', 'tab' => 'reports', 'rpg' => $rp ), admin_url( 'admin.php' ) );
+				echo '<a href="' . esc_url( $url ) . '" class="lr-pgbtn' . ( $rp === $rpg ? ' lr-pgbtn-a' : '' ) . '">' . esc_html( $rp ) . '</a>';
+			}
+			echo '</div>';
+		}
 		echo '</div>'; // #lr-panel-reports
 
 		// ════════════════════════════════════════════════════════════════
@@ -595,7 +638,7 @@ class LinkRise_Admin {
 		echo '<input type="hidden" name="action" value="linkrise_save_settings">';
 		wp_nonce_field( 'linkrise_settings_nonce' );
 
-		self::settings_section( '🔗 Core', array(
+		self::settings_section( 'Core', array(
 			array( 'text',     'linkrise_redirect_prefix', 'Redirect Prefix',     'go → yoursite.com/go/abc' ),
 			array( 'url',      'linkrise_landing_url',     'Landing Page URL',    'URL of page with [linkrise_landing] shortcode' ),
 			array( 'url',      'linkrise_fallback_url',    'Fallback URL',        'Where to redirect invalid/expired links' ),
@@ -606,7 +649,7 @@ class LinkRise_Admin {
 			array( 'checkbox', 'linkrise_admin_only',      'Admin Only Mode',     'Only admins can create links' ),
 		) );
 
-		self::settings_section( '🔐 CAPTCHA', array(
+		self::settings_section( 'CAPTCHA', array(
 			array( 'select', 'linkrise_captcha_provider', 'Provider', '', array( 'disabled' => 'Disabled', 'recaptcha' => 'Google reCAPTCHA v3', 'turnstile' => 'Cloudflare Turnstile' ) ),
 			array( 'text',   'linkrise_recaptcha_site',   'reCAPTCHA Site Key',    '' ),
 			array( 'pw',     'linkrise_recaptcha_secret', 'reCAPTCHA Secret Key',  '' ),
@@ -614,20 +657,20 @@ class LinkRise_Admin {
 			array( 'pw',     'linkrise_turnstile_secret', 'Turnstile Secret Key',  '' ),
 		) );
 
-		self::settings_section( '🛡️ Security', array(
+		self::settings_section( 'Security', array(
 			array( 'pw',   'linkrise_safe_browsing_key', 'Google Safe Browsing API Key', 'Blocks malware/phishing URLs' ),
 			array( 'text', 'linkrise_trusted_proxies',   'Trusted Proxy IPs',            'Comma-separated (for CDN / load balancer)' ),
 		) );
 
-		self::settings_section( '📊 Analytics', array(
+		self::settings_section( 'Analytics', array(
 			array( 'text', 'linkrise_ga4_id',     'GA4 Measurement ID', 'e.g. G-XXXXXXXXXX' ),
 			array( 'pw',   'linkrise_ga4_secret', 'GA4 API Secret',     'From GA4 → Data Streams → Measurement Protocol' ),
 			array( 'text', 'linkrise_gtm_id',     'GTM Container ID',   'e.g. GTM-XXXXXXX' ),
 		) );
 
 		echo '<div class="lr-settings-actions">';
-		echo '<button type="submit" class="lr-btn-primary lr-btn-lg">💾 Save Settings</button>';
-		echo '<button type="button" id="btn-flush" class="lr-btn-outline lr-btn-lg">🔄 Flush Rewrite Rules</button>';
+		echo '<button type="submit" class="lr-btn-primary lr-btn-lg">Save Settings</button>';
+		echo '<button type="button" id="btn-flush" class="lr-btn-outline lr-btn-lg">Flush Rewrite Rules</button>';
 		echo '</div>';
 		echo '</form>';
 		echo '</div>'; // #lr-panel-settings
@@ -639,7 +682,7 @@ class LinkRise_Admin {
 		// Add/Edit Link
 		echo '<div id="lr-modal-link" class="lr-modal" style="display:none" role="dialog">';
 		echo '<div class="lr-modal-box">';
-		echo '<div class="lr-modal-hd"><h2 id="lr-modal-ttl">Add New Link</h2><button class="lr-modal-cls" data-modal="lr-modal-link">✕</button></div>';
+		echo '<div class="lr-modal-hd"><h2 id="lr-modal-ttl">Add New Link</h2><button class="lr-modal-cls" data-modal="lr-modal-link">Close</button></div>';
 		echo '<div class="lr-modal-bd">';
 		echo '<input type="hidden" id="m-id" value="0">';
 		self::mfield( 'text',     'm-url',    'Destination URL *', 'https://example.com/your-long-url' );
@@ -657,15 +700,15 @@ class LinkRise_Admin {
 		// Click History
 		echo '<div id="lr-modal-clicks" class="lr-modal" style="display:none">';
 		echo '<div class="lr-modal-box lr-modal-wide">';
-		echo '<div class="lr-modal-hd"><h2>Click History</h2><button class="lr-modal-cls" data-modal="lr-modal-clicks">✕</button></div>';
+		echo '<div class="lr-modal-hd"><h2>Click History</h2><button class="lr-modal-cls" data-modal="lr-modal-clicks">Close</button></div>';
 		echo '<div class="lr-modal-bd" id="lr-clicks-bd"><p class="lr-loading">Loading…</p></div>';
 		echo '</div></div>';
 
 		// QR Code
 		echo '<div id="lr-modal-qr" class="lr-modal" style="display:none">';
 		echo '<div class="lr-modal-box lr-modal-sm" style="text-align:center">';
-		echo '<div class="lr-modal-hd"><h2>QR Code</h2><button class="lr-modal-cls" data-modal="lr-modal-qr">✕</button></div>';
-		echo '<div class="lr-modal-bd"><img id="lr-qr-img" src="" alt="QR Code" style="width:220px;height:220px;border-radius:8px;border:1px solid #e2e8f0"><div style="margin-top:12px"><a id="lr-qr-dl" href="#" download="linkrise-qr.png" class="lr-btn-primary">⬇ Download</a></div></div>';
+		echo '<div class="lr-modal-hd"><h2>QR Code</h2><button class="lr-modal-cls" data-modal="lr-modal-qr">Close</button></div>';
+		echo '<div class="lr-modal-bd"><img id="lr-qr-img" src="" alt="QR Code" style="width:220px;height:220px;border-radius:8px;border:1px solid #e2e8f0"><div style="margin-top:12px"><a id="lr-qr-dl" href="#" download="linkrise-qr.png" class="lr-btn-primary">Download</a></div></div>';
 		echo '</div></div>';
 
 		echo '</div>'; // .wrap.lr-admin
