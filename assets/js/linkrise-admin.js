@@ -1,3 +1,11 @@
+/*!
+ * LinkRise Admin JS v3.2.0
+ * Author:    Vijaya Kumar L
+ * GitHub:    https://github.com/risewithvj
+ * LinkedIn:  https://www.linkedin.com/in/vijayakumarl/
+ * Copyright: 2024 Vijaya Kumar L
+ * License:   GPL-2.0+
+ */
 /* global jQuery, LR */
 ;(function($) {
   'use strict';
@@ -29,7 +37,8 @@
   function closeModal(id){ $('#'+id).hide(); $('body').removeClass('lr-modal-open'); }
 
   /* ── TABS ─────────────────────────────────────────────────────────────── */
-  $(document).on('click', '.lr-nav-btn', function() {
+  $(document).on('click', '.lr-nav-btn', function(e) {
+    e.preventDefault();
     var tab = $(this).data('tab');
     $('.lr-nav-btn').removeClass('lr-nav-active');
     $(this).addClass('lr-nav-active');
@@ -123,7 +132,12 @@
 
   // Auto-load if analytics tab is active on page open
   $(function() {
-    if ($('#lr-panel-analytics').is(':visible')) loadAnalytics();
+    // Delay slightly to ensure DOM panel visibility is resolved after CSS
+    setTimeout(function() {
+      if ($('#lr-panel-analytics').is(':visible')) {
+        loadAnalytics();
+      }
+    }, 100);
   });
 
   $(document).on('click', '#btn-wipe', function() {
@@ -187,7 +201,12 @@
       if (res && res.success) {
         closeModal('lr-modal-link');
         toast(res.data.msg, 'success');
-        setTimeout(function(){ location.reload(); }, 800);
+        setTimeout(function() {
+          var u = new URL(window.location.href);
+          u.searchParams.set('tab', 'links');
+          u.searchParams.delete('pg');
+          window.location.href = u.toString();
+        }, 800);
       } else {
         toast((res && res.data && res.data.msg) ? res.data.msg : 'Save failed.', 'error');
       }
@@ -241,20 +260,60 @@
   /* ── COPY URL ─────────────────────────────────────────────────────────── */
   $(document).on('click', '.lr-copy-btn', function() {
     var url = $(this).data('url'), $b = $(this), orig = $b.text();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(function(){
-        $b.text('Done').addClass('lr-copied');
-        setTimeout(function(){ $b.text(orig).removeClass('lr-copied'); }, 2200);
-      });
+    function onCopied() {
+      $b.text('Done').addClass('lr-copied');
+      toast('Link copied to clipboard!', 'success');
+      setTimeout(function() { $b.text(orig).removeClass('lr-copied'); }, 2200);
+    }
+    function fallbackCopy() {
+      var ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); onCopied(); }
+      catch(e) { toast('Copy failed. Please copy manually.', 'error'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(onCopied).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
     }
   });
 
   /* ── QR CODE ──────────────────────────────────────────────────────────── */
+  var _currentQrUrl = '';
+
   $(document).on('click', '.lr-qr-btn', function() {
-    var url = $(this).data('url');
-    $('#lr-qr-img').attr('src', 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+encodeURIComponent(url));
-    $('#lr-qr-dl').attr('href', 'https://api.qrserver.com/v1/create-qr-code/?size=600x600&data='+encodeURIComponent(url));
+    _currentQrUrl = $(this).data('url');
+    $('#lr-qr-img').attr('src', 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(_currentQrUrl));
     openModal('lr-modal-qr');
+  });
+
+  $(document).on('click', '#lr-qr-dl', function() {
+    if (!_currentQrUrl) return;
+    var $btn = $(this).prop('disabled', true).text('Downloading...');
+    var dlUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=600x600&format=png&data=' + encodeURIComponent(_currentQrUrl);
+    fetch(dlUrl)
+      .then(function(r) { return r.blob(); })
+      .then(function(blob) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'linkrise-qr.png';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        }, 500);
+        $btn.prop('disabled', false).text('Download PNG');
+        toast('QR Code downloaded!', 'success');
+      })
+      .catch(function() {
+        $btn.prop('disabled', false).text('Download PNG');
+        toast('Download failed. Please try again.', 'error');
+      });
   });
 
   /* ── CLICK HISTORY ───────────────────────────────────────────────────── */
@@ -263,12 +322,31 @@
     $('#lr-clicks-bd').html('<p class="lr-loading">Loading…</p>');
     openModal('lr-modal-clicks');
     post('lr_get_clicks', { link_id: id }, function(res) {
-      if (!res || !res.success || !res.data.clicks || !res.data.clicks.length) {
-        $('#lr-clicks-bd').html('<p class="lr-loading">No clicks recorded yet.</p>'); return;
+      var clicks = (res && res.success && res.data && Array.isArray(res.data.clicks)) ? res.data.clicks : [];
+      if (!clicks.length) {
+        $('#lr-clicks-bd').html('<p class="lr-loading">No clicks recorded yet for this link.</p>');
+        return;
       }
-      var html = '<div class="lr-tbl-wrap"><table class="lr-tbl"><thead><tr><th>Date</th><th>Country</th><th>Device</th><th>Browser</th><th>OS</th><th>Referrer</th></tr></thead><tbody>';
-      res.data.clicks.forEach(function(c) {
-        html += '<tr><td>'+esc(c.clicked_at)+'</td><td>'+esc(c.country||'—')+'</td><td>'+esc(c.device||'—')+'</td><td>'+esc(c.browser||'—')+'</td><td>'+esc(c.os||'—')+'</td><td title="'+esc(c.referrer||'')+'">'+esc((c.referrer||'Direct').slice(0,40))+'</td></tr>';
+      var html = '<div class="lr-tbl-wrap"><table class="lr-tbl">'
+        + '<thead><tr>'
+        + '<th>Date / Time</th>'
+        + '<th>Country</th>'
+        + '<th>Device</th>'
+        + '<th>Browser</th>'
+        + '<th>OS</th>'
+        + '<th>Referrer</th>'
+        + '<th>UTM Source</th>'
+        + '</tr></thead><tbody>';
+      clicks.forEach(function(c) {
+        html += '<tr>'
+          + '<td>' + esc(c.clicked_at) + '</td>'
+          + '<td>' + esc(c.country || '—') + '</td>'
+          + '<td>' + esc(c.device  || '—') + '</td>'
+          + '<td>' + esc(c.browser || '—') + '</td>'
+          + '<td>' + esc(c.os      || '—') + '</td>'
+          + '<td title="' + esc(c.referrer || '') + '">' + esc((c.referrer || 'Direct').slice(0, 45)) + '</td>'
+          + '<td>' + esc(c.utm_source || '—') + '</td>'
+          + '</tr>';
       });
       html += '</tbody></table></div>';
       $('#lr-clicks-bd').html(html);
@@ -304,7 +382,12 @@
     var ids = getSelected(); if (!ids.length) return;
     if (!confirm('Expire '+ids.length+' link(s) now?')) return;
     post('lr_bulk_expire', { ids: ids }, function(res) {
-      if (res && res.success) { toast(ids.length+' links expired.', 'success'); setTimeout(function(){ location.reload(); }, 700); }
+      if (res && res.success) { toast(ids.length+' links expired.', 'success'); setTimeout(function() {
+          var u = new URL(window.location.href);
+          u.searchParams.set('tab', 'links');
+          u.searchParams.delete('pg');
+          window.location.href = u.toString();
+        }, 700); }
     });
   });
 
@@ -312,7 +395,12 @@
     var ids = getSelected(); if (!ids.length) return;
     var status = this.id === 'btn-bulk-activate' ? 'active' : 'paused';
     post('lr_bulk_status', { ids: ids, status: status }, function(res) {
-      if (res && res.success) { toast(ids.length+' links updated.', 'success'); setTimeout(function(){ location.reload(); }, 700); }
+      if (res && res.success) { toast(ids.length+' links updated.', 'success'); setTimeout(function() {
+          var u = new URL(window.location.href);
+          u.searchParams.set('tab', 'links');
+          u.searchParams.delete('pg');
+          window.location.href = u.toString();
+        }, 700); }
     });
   });
 
@@ -336,7 +424,12 @@
     var fd = new FormData(); fd.append('action','lr_import'); fd.append('nonce',nce); fd.append('file',file);
     $.ajax({ url:aj, method:'POST', data:fd, processData:false, contentType:false,
       success: function(res) {
-        if (res && res.success) { toast('Imported '+res.data.imported+' links ('+res.data.skipped+' skipped).', 'success'); setTimeout(function(){ location.reload(); }, 900); }
+        if (res && res.success) { toast('Imported '+res.data.imported+' links ('+res.data.skipped+' skipped).', 'success'); setTimeout(function() {
+          var u = new URL(window.location.href);
+          u.searchParams.set('tab', 'links');
+          u.searchParams.delete('pg');
+          window.location.href = u.toString();
+        }, 900); }
         else { toast('Import failed.', 'error'); }
       }, error: function(){ toast('Upload failed.', 'error'); }
     });
@@ -349,7 +442,12 @@
     var fd = new FormData(); fd.append('action','lr_full_restore'); fd.append('nonce',nce); fd.append('file',file);
     $.ajax({ url:aj, method:'POST', data:fd, processData:false, contentType:false,
       success: function(res) {
-        if (res && res.success) { toast('Restored '+res.data.imported+' links.', 'success'); setTimeout(function(){ location.reload(); }, 900); }
+        if (res && res.success) { toast('Restored '+res.data.imported+' links.', 'success'); setTimeout(function() {
+          var u = new URL(window.location.href);
+          u.searchParams.set('tab', 'links');
+          u.searchParams.delete('pg');
+          window.location.href = u.toString();
+        }, 900); }
         else { toast('Restore failed.', 'error'); }
       }, error: function(){ toast('Upload failed.', 'error'); }
     });
