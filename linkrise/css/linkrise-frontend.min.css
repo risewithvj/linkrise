@@ -208,11 +208,10 @@
   color: #ffffff !important;
   border: none !important;
   border-radius: 8px !important;
-  padding: 12px 24px !important;
-  min-height: 48px !important;
+  height: 48px !important;
+  padding: 0 24px !important;
   font-size: 0.95rem !important;
   font-weight: 700 !important;
-  line-height: 1.2 !important;
   text-align: center !important;
   cursor: pointer !important;
   display: inline-flex !important;
@@ -220,6 +219,7 @@
   justify-content: center !important;
   transition: background 0.2s ease, transform 0.1s ease !important;
   margin: 0 !important;
+  line-height: 1 !important;
 }
 
 .lr-wrap .lr-btn-primary:hover {
@@ -248,16 +248,16 @@
   color: #0363fc !important;
   border: 2px solid #0363fc !important;
   border-radius: 8px !important;
-  padding: 10px 24px !important;
-  min-height: 48px !important;
+  padding: 0 24px !important;
+  height: 48px !important;
   font-size: 0.95rem !important;
   font-weight: 700 !important;
-  line-height: 1.2 !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   margin: 0 !important;
+  line-height: 1 !important;
 }
 
 .lr-wrap .lr-btn-secondary:hover {
@@ -269,16 +269,16 @@
   color: #64748b !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 8px !important;
-  padding: 11px 24px !important;
-  min-height: 48px !important;
+  padding: 0 24px !important;
+  height: 48px !important;
   font-size: 0.95rem !important;
   font-weight: 700 !important;
-  line-height: 1.2 !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   margin: 0 !important;
+  line-height: 1 !important;
 }
 
 .lr-wrap .lr-btn-outline:hover {
@@ -355,9 +355,11 @@
 
 .lr-wrap .lr-result-btns {
   display: flex !important;
-  gap: 10px !important;
+  gap: 12px !important;
   justify-content: center !important;
+  align-items: center !important;
   flex-wrap: wrap !important;
+  margin-top: 24px !important;
 }
 
 .lr-wrap .lr-tos-row {
